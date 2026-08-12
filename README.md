@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sistema Gráfica — Catálogo (v1)
 
-## Getting Started
+Catálogo básico de productos, alimentado desde la API de CDO Promocionales.
+Es un Server Component: la llamada a la API (con el token) se hace del lado del
+servidor, así el token nunca llega al navegador del cliente ni queda expuesto
+en el bundle de JavaScript.
 
-First, run the development server:
+## Cómo integrarlo en tu proyecto
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Copiá estas carpetas/archivos dentro de tu proyecto en:
+`C:\Users\Alan\OneDrive\Desktop\Proyectos\Sistema_Grafica\sistema_grafica_fernando`
+
+```
+app/layout.tsx        (reemplaza el default)
+app/page.tsx           (reemplaza el default)
+components/ProductCard.tsx
+components/Pagination.tsx
+lib/types.ts
+lib/cdo-api.ts
+lib/product-helpers.ts
+next.config.ts          (reemplaza el default)
+.env.example
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Si tu proyecto ya tiene `app/globals.css` con Tailwind configurado, no hace
+falta tocar nada ahí — las clases usadas (`grid`, `rounded-lg`, etc.) son
+utilidades estándar de Tailwind.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Variables de entorno
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Copiá `.env.example` a `.env.local` (este último **nunca** se sube a Git).
+2. Completá con el token que quieras usar (pruebas o producción).
+3. En Vercel, estas mismas variables se configuran en:
+   Project Settings → Environment Variables (no se suben en el repo).
 
-## Learn More
+## Correrlo local
 
-To learn more about Next.js, take a look at the following resources:
+```
+npm install
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Abrí `http://localhost:3000` — vas a ver la grilla de productos con
+paginación (24 por página, usando `page_size`/`page_number` como indica la
+documentación de la API).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Qué hace cada archivo
 
-## Deploy on Vercel
+- `lib/types.ts` — tipos TypeScript que reflejan la respuesta real de la API
+  (probé la URL de pruebas y calqué la forma exacta del JSON).
+- `lib/cdo-api.ts` — la única función que llama a la API. Usa `fetch` con
+  `revalidate: 300` (5 min) para no pegarle a la API en cada request, pero
+  mantener el stock razonablemente actualizado. Podés bajar ese número si
+  necesitás datos más frescos.
+- `lib/product-helpers.ts` — funciones chicas para sacar la imagen principal,
+  el rango de precio (varía por variante/color) y el stock total sumado de
+  todos los variantes.
+- `components/ProductCard.tsx` — la tarjeta de cada producto: imagen, nombre,
+  categoría, precio y estado de stock ("Agotado" si stock_available es 0 en
+  todos los variantes).
+- `components/Pagination.tsx` — enlaces "Anterior/Siguiente" que cambian el
+  parámetro `?page=` de la URL.
+- `app/page.tsx` — junta todo: lee `?page=` de la URL, pide los productos y
+  renderiza la grilla + paginación.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Próximos pasos (cuando quieras)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Darle estilo real (colores de marca, tipografía, header/footer).
+- Filtro por categoría (la API ya devuelve `categories` en cada producto).
+- Página de detalle de producto (`/producto/[id]`) mostrando todos los
+  variantes/colores con su stock individual.
+- El panel de gestión del local que hablamos (login + edición) — eso ya no
+  depende de esta API sino de tu propia base de datos, así que es un proyecto
+  aparte que consume estos mismos datos como punto de partida.
