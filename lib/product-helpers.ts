@@ -1,8 +1,11 @@
 import { Category, Product } from "./types";
 
-/** Imagen principal del producto: la del primer variante, o un placeholder */
+/** Imagen principal del producto: la del primer variante, o un placeholder.
+ * Usa "original" (no "medium") — la medium de CDO/Maya es un thumb chico
+ * y se ve pixelada estirada al tamaño del card. */
 export function getMainImage(product: Product): string {
   return (
+    product.variants?.[0]?.picture?.original ??
     product.variants?.[0]?.picture?.medium ??
     product.variants?.[0]?.picture?.small ??
     "/placeholder.svg"
@@ -14,6 +17,21 @@ export function getPriceRange(product: Product): { min: number; max: number } {
   const prices = product.variants.map((v) => parseFloat(v.net_price)).filter((p) => !isNaN(p));
   if (prices.length === 0) return { min: 0, max: 0 };
   return { min: Math.min(...prices), max: Math.max(...prices) };
+}
+
+/** Precio de lista vs. precio neto de la variante más barata (para mostrar descuento) */
+export function getMainVariantPrices(product: Product): { list: number; net: number } {
+  const variant = product.variants.reduce<Product["variants"][number] | undefined>((cheapest, v) => {
+    const net = parseFloat(v.net_price);
+    if (isNaN(net)) return cheapest;
+    if (!cheapest || net < parseFloat(cheapest.net_price)) return v;
+    return cheapest;
+  }, undefined);
+
+  return {
+    list: parseFloat(variant?.list_price ?? "") || 0,
+    net: parseFloat(variant?.net_price ?? "") || 0,
+  };
 }
 
 /** Suma el stock disponible de todos los variantes */

@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    // Next 16 solo permite quality=75 por default; ProductCard pide 90
+    // para que las fotos de producto no se vean pixeladas.
+    qualities: [75, 90],
     remotePatterns: [
       {
         protocol: "https",

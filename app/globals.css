@@ -1,26 +1,9 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+/* Nada de dark-mode automático acá: todo el diseño (catálogo y panel)
+   asume colores fijos (bg-white, text-black, etc.) puestos directo en
+   los componentes vía Tailwind. El boilerplate de create-next-app traía
+   un @media (prefers-color-scheme: dark) + `body { background/color }`
+   sin @layer, que por reglas de cascada le gana a las utilities de
+   Tailwind — con el SO en modo oscuro el fondo se ponía casi negro pero
+   el texto seguía siendo negro (texto invisible). Se sacó todo eso. */
