@@ -11,23 +11,23 @@ export default function CategoryFilter({ categories, activeCategory }: CategoryF
   if (categories.length === 0) return null;
 
   return (
-    <div className="w-full space-y-4 rounded-[20px] border border-black/10 px-5 py-5 md:w-[260px] md:shrink-0">
+    <div className="w-full space-y-4 rounded-[20px] border border-white/10 px-5 py-5 md:w-[260px] md:shrink-0">
       <div className="flex items-center justify-between">
-        <span className="text-xl font-bold text-black">Categorías</span>
-        <SlidersHorizontal size={18} className="text-black/40" />
+        <span className="text-xl font-bold text-white">Categorías</span>
+        <SlidersHorizontal size={18} className="text-neutral-500" />
       </div>
 
-      <hr className="border-t-black/10" />
+      <hr className="border-t-white/10" />
 
-      <div className="flex max-h-[480px] flex-col space-y-0.5 overflow-y-auto pr-1 text-black/60">
+      <div className="flex max-h-[480px] flex-col space-y-0.5 overflow-y-auto pr-1 text-neutral-400">
         <Link
-          href="/"
+          href="/catalogo"
           className={`flex items-center justify-between py-2 text-sm ${
-            !activeCategory ? "font-bold text-black" : "hover:text-black"
+            !activeCategory ? "font-bold text-white" : "hover:text-white"
           }`}
         >
           Todas
-          {!activeCategory && <ChevronRight size={16} />}
+          {!activeCategory && <ChevronRight size={16} className="text-brand-red" />}
         </Link>
 
         {categories.map((category) => {
@@ -35,13 +35,13 @@ export default function CategoryFilter({ categories, activeCategory }: CategoryF
           return (
             <Link
               key={category.id}
-              href={`/?category=${category.id}`}
+              href={`/catalogo?category=${category.id}`}
               className={`flex items-center justify-between py-2 text-sm ${
-                isActive ? "font-bold text-black" : "hover:text-black"
+                isActive ? "font-bold text-white" : "hover:text-white"
               }`}
             >
               {category.name}
-              {isActive && <ChevronRight size={16} />}
+              {isActive && <ChevronRight size={16} className="text-brand-red" />}
             </Link>
           );
         })}

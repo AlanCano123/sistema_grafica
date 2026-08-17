@@ -1,14 +1,12 @@
-import localFont from "next/font/local";
+import { Inter } from "next/font/google";
 
-// Tipografía tomada del template next-ecommerce-shopco (fuente Satoshi,
-// archivos originales incluidos en esa carpeta). Escopeada solo a la
-// sección pública (catálogo/calculadora) — el panel usa Nunito aparte.
-export const satoshi = localFont({
-  src: [
-    { path: "./Satoshi-Regular.woff2", weight: "400", style: "normal" },
-    { path: "./Satoshi-Medium.woff2", weight: "500", style: "normal" },
-    { path: "./Satoshi-Bold.woff2", weight: "700", style: "normal" },
-  ],
-  fallback: ["sans-serif"],
-  variable: "--font-satoshi",
+// Inter es Google Font, se carga directo (a diferencia de Satoshi antes,
+// que era local). Se aplica en <body> desde app/layout.tsx, no en un div
+// wrapper de app/(site)/layout.tsx — ver el comentario ahí (Suspense
+// boundary de app/(site)/catalogo/loading.tsx hace que el contenido
+// streameado quede como hermano del wrapper, no como hijo).
+export const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-inter",
 });

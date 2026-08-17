@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Colores de marca (Láser Kind) — Tailwind v4 es CSS-first, no hay
+   tailwind.config.js: definir acá adentro de @theme alcanza para que
+   bg-brand-red / text-brand-red / border-brand-red, etc. existan como
+   utilities reales. */
+@theme {
+  --color-brand-red: #e11d2e;
+  --color-brand-red-dark: #b3121f;
+}
+
 /* Nada de dark-mode automático acá: todo el diseño (catálogo y panel)
    asume colores fijos (bg-white, text-black, etc.) puestos directo en
    los componentes vía Tailwind. El boilerplate de create-next-app traía

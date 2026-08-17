@@ -1,16 +1,28 @@
-// Datos ficticios para el prototipo — no son precios reales todavía.
+// Tarifas de ejemplo (por cm²) — VALORES PROVISORIOS, ajustar con precios
+// reales del negocio. Calcadas de MATERIAL_RATES en el diseño original
+// (front-end/js/main.js).
 export interface Material {
   id: string;
-  name: string;
-  pricePerM2: number; // ARS por m²
-  minCharge: number; // costo mínimo del trabajo, aunque el área sea chica
+  label: string;
+  rate: number; // ARS por cm²
+  base: number; // ARS base
 }
 
 export const MATERIALS: Material[] = [
-  { id: "vinilo", name: "Vinilo Adhesivo", pricePerM2: 1500, minCharge: 800 },
-  { id: "lona", name: "Lona Banner", pricePerM2: 1200, minCharge: 700 },
-  { id: "acrilico", name: "Acrílico 3mm", pricePerM2: 3800, minCharge: 2000 },
-  { id: "mdf", name: "MDF 3mm", pricePerM2: 2900, minCharge: 1500 },
-  { id: "chapa", name: "Chapa Metálica", pricePerM2: 4500, minCharge: 2500 },
-  { id: "telgopor", name: "Telgopor 5mm", pricePerM2: 900, minCharge: 500 },
+  { id: "mdf", label: "MDF", rate: 3.5, base: 1500 },
+  { id: "acrilico", label: "Acrílico", rate: 6, base: 2000 },
+  { id: "madera", label: "Madera", rate: 4.5, base: 1800 },
+  { id: "metal", label: "Metal", rate: 9, base: 3000 },
+  { id: "cuero", label: "Cuero", rate: 5, base: 1500 },
+  { id: "vidrio", label: "Vidrio", rate: 7, base: 2000 },
 ];
+
+/** Precio estimado = base + área(cm²) × tarifa, redondeado a la decena. */
+export function calculatePrice(largoCm: number, anchoCm: number, materialId: string): number | null {
+  const material = MATERIALS.find((m) => m.id === materialId);
+  if (!material || !largoCm || !anchoCm || largoCm <= 0 || anchoCm <= 0) return null;
+
+  const area = largoCm * anchoCm;
+  const precio = material.base + area * material.rate;
+  return Math.round(precio / 10) * 10;
+}

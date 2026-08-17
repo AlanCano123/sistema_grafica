@@ -9,7 +9,7 @@ export default function ProductCard({ product }: { product: Product }) {
 
   return (
     <div className="flex flex-col items-start">
-      <div className="relative mb-2.5 aspect-square w-full overflow-hidden rounded-[13px] bg-[#F0EEED] lg:mb-4 lg:rounded-[20px]">
+      <div className="relative mb-2.5 aspect-square w-full overflow-hidden rounded-[13px] border border-white/10 bg-neutral-900 lg:mb-4 lg:rounded-[20px]">
         <Image
           src={image}
           alt={product.name}
@@ -25,20 +25,20 @@ export default function ProductCard({ product }: { product: Product }) {
         )}
       </div>
 
-      <span className="text-xs text-black/40">{product.code}</span>
-      <h3 className="line-clamp-2 text-sm font-bold text-black">{product.name}</h3>
+      <span className="text-xs text-neutral-500">{product.code}</span>
+      <h3 className="line-clamp-2 text-sm font-bold text-white">{product.name}</h3>
 
       {product.categories && product.categories.length > 0 && (
-        <p className="mt-0.5 line-clamp-1 text-xs text-black/50">
+        <p className="mt-0.5 line-clamp-1 text-xs text-neutral-500">
           {product.categories.map((c) => c.name).join(", ")}
         </p>
       )}
 
       {product.description && (
-        <p className="mt-1 line-clamp-3 text-xs text-black/60">{product.description}</p>
+        <p className="mt-1 line-clamp-3 text-xs text-neutral-400">{product.description}</p>
       )}
 
-      <span className={`mt-2 text-xs font-medium ${sinStock ? "text-[#FF3333]" : "text-black/50"}`}>
+      <span className={`mt-2 text-xs font-medium ${sinStock ? "text-brand-red" : "text-neutral-400"}`}>
         {sinStock ? "Agotado" : `Stock: ${stock}`}
       </span>
     </div>

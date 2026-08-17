@@ -33,7 +33,7 @@ export default function Pagination({ currentPage, totalPages, category }: Pagina
     const params = new URLSearchParams();
     params.set("page", String(page));
     if (category) params.set("category", category);
-    return `/?${params.toString()}`;
+    return `/catalogo?${params.toString()}`;
   };
 
   const pageNumbers = getPageNumbers(currentPage, totalPages);
@@ -44,7 +44,9 @@ export default function Pagination({ currentPage, totalPages, category }: Pagina
         href={prev ? buildHref(prev) : "#"}
         aria-disabled={!prev}
         className={`flex items-center gap-1 rounded-full border px-4 py-2 text-sm ${
-          prev ? "border-black/10 text-black hover:bg-black/5" : "cursor-not-allowed border-black/5 text-black/20"
+          prev
+            ? "border-white/10 text-white hover:bg-white/5"
+            : "cursor-not-allowed border-white/5 text-neutral-700"
         }`}
       >
         <ChevronLeft size={16} />
@@ -54,7 +56,7 @@ export default function Pagination({ currentPage, totalPages, category }: Pagina
       <div className="flex items-center gap-1">
         {pageNumbers.map((p, i) =>
           p === "..." ? (
-            <span key={`ellipsis-${i}`} className="px-2 text-sm text-black/40">
+            <span key={`ellipsis-${i}`} className="px-2 text-sm text-neutral-600">
               …
             </span>
           ) : (
@@ -62,7 +64,7 @@ export default function Pagination({ currentPage, totalPages, category }: Pagina
               key={p}
               href={buildHref(p)}
               className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
-                p === currentPage ? "bg-black text-white" : "text-black/60 hover:bg-black/5"
+                p === currentPage ? "bg-brand-red text-white" : "text-neutral-400 hover:bg-white/5"
               }`}
             >
               {p}
@@ -75,7 +77,9 @@ export default function Pagination({ currentPage, totalPages, category }: Pagina
         href={next ? buildHref(next) : "#"}
         aria-disabled={!next}
         className={`flex items-center gap-1 rounded-full border px-4 py-2 text-sm ${
-          next ? "border-black/10 text-black hover:bg-black/5" : "cursor-not-allowed border-black/5 text-black/20"
+          next
+            ? "border-white/10 text-white hover:bg-white/5"
+            : "cursor-not-allowed border-white/5 text-neutral-700"
         }`}
       >
         <span className="hidden sm:inline">Siguiente</span>
