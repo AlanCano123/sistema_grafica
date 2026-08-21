@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": ".open-next/worker.js",
+  // Tiene que coincidir EXACTO con el nombre real del proyecto/Worker en
+  // Cloudflare (el que se ve en el dashboard) y con "service" del binding
+  // WORKER_SELF_REFERENCE de más abajo. El auto-setup de wrangler generó
+  // estos dos valores de fuentes distintas (uno del proyecto de Cloudflare,
+  // otro de package.json) y no coincidían — por eso falló el deploy con
+  // "Service binding ... was not found" (código 10143).
+  "name": "sistema-grafica",
+  "compatibility_date": "2026-08-20",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "sistema-grafica",
+    },
+  ],
+  "images": {
+    "binding": "IMAGES",
+  },
+  "observability": {
+    "enabled": true,
+  },
+}
