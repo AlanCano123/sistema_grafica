@@ -32,8 +32,11 @@ export async function getProducts({
   const API_TOKEN = env.CDO_API_TOKEN;
 
   if (!API_BASE_URL || !API_TOKEN) {
+    const faltantes = [!API_BASE_URL && "CDO_API_BASE_URL", !API_TOKEN && "CDO_API_TOKEN"]
+      .filter(Boolean)
+      .join(", ");
     throw new Error(
-      "Faltan las variables de entorno CDO_API_BASE_URL / CDO_API_TOKEN. Revisá tu .dev.vars local (o las Variables & Secrets del Worker en Cloudflare)."
+      `Falta(n) la(s) variable(s) de entorno: ${faltantes}. Revisá tu .dev.vars local (o las Variables & Secrets del Worker en Cloudflare).`
     );
   }
 
