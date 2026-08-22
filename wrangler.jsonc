@@ -30,6 +30,12 @@
       "database_id": "aa4415cb-a8c0-435c-a616-5fc85919b844",
     },
   ],
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "cd1bbfaf05894f7496e77fe77cdf55b6",
+    },
+  ],
   "observability": {
     "enabled": true,
   },

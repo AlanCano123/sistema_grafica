@@ -1,8 +1,10 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getCache, setCache } from "./catalog-cache";
 import { Picture, Product, Variant } from "./types";
 import { MayaArticle, MayaLoginResponse, MayaPhoto } from "./maya-types";
 
 const CACHE_KEY = "maya-products";
+const MAYA_TOKEN_KEY = "maya-token";
 
 // Estas variables viven en .env.local y NUNCA se exponen al navegador
 // porque este archivo solo se importa desde Server Components / route handlers.
@@ -19,16 +21,17 @@ const MAYA_ENABLED = Boolean(MAYA_BASE_URL && MAYA_EMAIL && MAYA_PASSWORD);
 // choquen con los ids numéricos de CDO al combinar ambos catálogos.
 const MAYA_PREFIX = "maya-";
 
-// --- Login y cache de token en memoria ------------------------------------
+// --- Login y cache de token en Workers KV ---------------------------------
 // El login (usuario/contraseña) devuelve un JWT de corta duración
 // (expires_in, típicamente 3600s) y no hay endpoint de refresh, así que
-// hay que volver a loguear cuando expira. Se cachea en una variable de
-// módulo: vive mientras el proceso del server esté "caliente".
+// hay que volver a loguear cuando expira. El token vive en KV (compartido
+// entre instancias/isolates) con expirationTtl igual a su vigencia real,
+// así KV lo borra solo cuando deja de servir.
 
-let cachedToken: { token: string; expiresAt: number } | null = null;
-// Single-flight: si varios pedidos concurrentes necesitan loguear al mismo
-// tiempo (token vencido o server recién arrancado), que compartan el mismo
-// login en vez de mandar N logins simultáneos.
+// Single-flight en memoria: evita que la MISMA instancia dispare logins en
+// paralelo (token vencido o instancia recién arrancada). Entre instancias
+// distintas puede haber algún login duplicado ocasional — es barato,
+// no vale la pena coordinarlo vía KV (que no tiene locking atómico).
 let inflightLogin: Promise<string> | null = null;
 
 async function mayaLogin(): Promise<string> {
@@ -44,19 +47,30 @@ async function mayaLogin(): Promise<string> {
   }
 
   const data = (await res.json()) as MayaLoginResponse;
-  cachedToken = {
-    token: data.access_token,
-    // Margen de seguridad de 30s para no usar un token que expira justo
-    // en medio de un pedido.
-    expiresAt: Date.now() + (data.expires_in - 30) * 1000,
-  };
-  return cachedToken.token;
+  const token = data.access_token;
+  // Margen de seguridad de 30s para no usar un token que expira justo en
+  // medio de un pedido. KV exige mínimo 60s de TTL.
+  const ttlSeconds = Math.max(60, data.expires_in - 30);
+
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    await env.KV.put(MAYA_TOKEN_KEY, token, { expirationTtl: ttlSeconds });
+  } catch (err) {
+    console.error("[maya-api] Error guardando token en KV:", err);
+  }
+
+  return token;
 }
 
 async function getMayaToken(): Promise<string> {
-  if (cachedToken && cachedToken.expiresAt > Date.now()) {
-    return cachedToken.token;
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const cached = await env.KV.get(MAYA_TOKEN_KEY);
+    if (cached) return cached;
+  } catch (err) {
+    console.error("[maya-api] Error leyendo token de KV:", err);
   }
+
   if (!inflightLogin) {
     inflightLogin = mayaLogin().finally(() => {
       inflightLogin = null;
@@ -77,7 +91,12 @@ async function mayaFetch(path: string, retryOn401 = true): Promise<Response> {
   });
 
   if (res.status === 401 && retryOn401) {
-    cachedToken = null;
+    try {
+      const { env } = await getCloudflareContext({ async: true });
+      await env.KV.delete(MAYA_TOKEN_KEY);
+    } catch (err) {
+      console.error("[maya-api] Error invalidando token en KV:", err);
+    }
     return mayaFetch(path, false);
   }
 
