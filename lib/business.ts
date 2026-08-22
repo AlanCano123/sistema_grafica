@@ -1,7 +1,7 @@
-import { supabase } from "./supabase";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 export interface Debt {
-  id: string;
+  id: number;
   direction: "receivable" | "payable"; // receivable = te deben | payable = vos debés
   counterparty_name: string;
   amount: number;
@@ -12,7 +12,7 @@ export interface Debt {
 }
 
 export interface Sale {
-  id: string;
+  id: number;
   description: string;
   amount: number;
   sale_date: string;
@@ -20,27 +20,27 @@ export interface Sale {
 }
 
 export async function getDebts(): Promise<Debt[]> {
-  const { data, error } = await supabase
-    .from("debts")
-    .select("*")
-    .order("due_date", { ascending: true, nullsFirst: false });
-
-  if (error) {
-    console.error("[business] Error trayendo deudas:", error);
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    // "due_date IS NULL" da 0/1: los que tienen fecha (0) van primero,
+    // ordenados ascendente; los NULL quedan al final.
+    const { results } = await env.DB.prepare(
+      "SELECT * FROM debts ORDER BY due_date IS NULL, due_date ASC"
+    ).all<Debt>();
+    return results;
+  } catch (err) {
+    console.error("[business] Error trayendo deudas:", err);
     return [];
   }
-  return data ?? [];
 }
 
 export async function getSales(): Promise<Sale[]> {
-  const { data, error } = await supabase
-    .from("sales")
-    .select("*")
-    .order("sale_date", { ascending: false });
-
-  if (error) {
-    console.error("[business] Error trayendo ventas:", error);
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const { results } = await env.DB.prepare("SELECT * FROM sales ORDER BY sale_date DESC").all<Sale>();
+    return results;
+  } catch (err) {
+    console.error("[business] Error trayendo ventas:", err);
     return [];
   }
-  return data ?? [];
 }

@@ -23,6 +23,13 @@
   "images": {
     "binding": "IMAGES",
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sistema_grafica_bd",
+      "database_id": "aa4415cb-a8c0-435c-a616-5fc85919b844",
+    },
+  ],
   "observability": {
     "enabled": true,
   },

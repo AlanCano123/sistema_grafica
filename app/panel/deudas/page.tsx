@@ -1,6 +1,10 @@
 import { getDebts, Debt } from "@/lib/business";
 import { formatPrice } from "@/lib/product-helpers";
 
+// D1 solo existe en tiempo real del Worker — sin esto la página quedaría
+// prerenderizada una vez en el build, sin poder leer la base todavía.
+export const dynamic = "force-dynamic";
+
 function StatusBadge({ status }: { status: Debt["status"] }) {
   const isPaid = status === "paid";
   return (

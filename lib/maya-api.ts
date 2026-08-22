@@ -134,11 +134,9 @@ function mayaToProduct(article: MayaArticle): Product {
 }
 
 // --- Cache de productos ------------------------------------------------
-// En Supabase (catalog-cache.ts), no en memoria: mismo motivo que
-// cdo-api.ts — en Vercel cada instancia serverless es un proceso
-// aparte, la memoria no se comparte entre ellas. El token de login
-// (cachedToken, arriba) sí se deja en memoria: relogear es barato,
-// no vale la pena persistirlo.
+// Lo maneja catalog-cache.ts (memoria por ahora, interino — ver comentario
+// ahí). El token de login (cachedToken, arriba) sí se deja en memoria a
+// propósito: relogear es barato, no vale la pena persistirlo aparte.
 
 async function fetchMayaProductsFromApi(): Promise<Product[]> {
   const res = await mayaFetch("/api/v1/article/without-print");

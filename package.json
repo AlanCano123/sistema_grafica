@@ -8,10 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview"
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf-typegen": "wrangler types"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.112.3",
     "@types/aos": "^3.0.8",
     "aos": "^2.3.4",
     "chart.js": "^4.5.1",

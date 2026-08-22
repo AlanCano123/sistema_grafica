@@ -77,10 +77,11 @@ async function fetchAllProductsFromApi(): Promise<Product[]> {
  * categoría del lado del servidor (ignora parámetros desconocidos), así
  * que traemos todo y filtramos acá.
  *
- * El cache vive en Supabase (catalog-cache.ts), no en memoria: en Vercel
- * cada instancia serverless es un proceso distinto y no comparte memoria,
- * así que un cache en variable de módulo se perdía en cada cold start.
- * `isRefreshing`/`inflightFetch` siguen siendo en memoria — son solo un
+ * El cache lo maneja catalog-cache.ts (memoria por ahora, Workers KV
+ * después). En serverless/edge cada instancia puede ser un proceso
+ * distinto y no comparte memoria entre sí, así que esto no persiste
+ * entre cold starts — es interino.
+ * `isRefreshing`/`inflightFetch` siguen siendo en memoria acá — son solo un
  * best-effort para no duplicar trabajo DENTRO de una misma instancia
  * caliente; entre instancias distintas puede haber algún refresh
  * duplicado ocasional, no pasa nada, es barato comparado con no cachear.
@@ -115,9 +116,9 @@ export async function getAllProducts(): Promise<Product[]> {
     return cached.data; // servimos lo último conocido mientras refresca
   }
 
-  // Primer pedido desde que arrancó el server (o cache de Supabase vacío
-  // todavía): no hay nada que mostrar, hay que esperar sí o sí (pero solo
-  // una vez por instancia, ver comentario arriba).
+  // Primer pedido desde que arrancó el server (o cache vacío todavía):
+  // no hay nada que mostrar, hay que esperar sí o sí (pero solo una vez
+  // por instancia, ver comentario arriba).
   if (!inflightFetch) {
     inflightFetch = fetchAllProductsFromApi().finally(() => {
       inflightFetch = null;

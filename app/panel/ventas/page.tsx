@@ -1,6 +1,10 @@
 import { getSales } from "@/lib/business";
 import { formatPrice } from "@/lib/product-helpers";
 
+// D1 solo existe en tiempo real del Worker — sin esto la página quedaría
+// prerenderizada una vez en el build, sin poder leer la base todavía.
+export const dynamic = "force-dynamic";
+
 export default async function VentasPage() {
   const sales = await getSales();
   const total = sales.reduce((sum, s) => sum + s.amount, 0);

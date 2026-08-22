@@ -1,4 +1,9 @@
 import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+
+// Sin esto, `next dev` no ve los bindings de Cloudflare (D1, KV, etc.) —
+// simula localmente los recursos definidos en wrangler.jsonc.
+initOpenNextCloudflareForDev();
 
 const nextConfig: NextConfig = {
   images: {

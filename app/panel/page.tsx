@@ -5,6 +5,10 @@ import SalesAreaChart from "@/components/panel/SalesAreaChart";
 import DebtsDoughnutChart from "@/components/panel/DebtsDoughnutChart";
 import { DollarSign, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 
+// D1 solo existe en tiempo real del Worker — sin esto la página quedaría
+// prerenderizada una vez en el build, sin poder leer la base todavía.
+export const dynamic = "force-dynamic";
+
 export default async function PanelPage() {
   const [debts, sales] = await Promise.all([getDebts(), getSales()]);
 
