@@ -36,6 +36,18 @@
       "id": "cd1bbfaf05894f7496e77fe77cdf55b6",
     },
   ],
+  // No sensibles — quedan acá porque `wrangler deploy` es declarativo:
+  // lo que no está en este archivo no sobrevive al siguiente deploy,
+  // aunque se haya cargado a mano en el dashboard (D1/KV ya andaban
+  // bien porque están declarados acá; estas vars no lo estaban).
+  // CDO_API_TOKEN / MAYA_API_PASSWORD NO van acá — esos quedan como
+  // "Secret" (no "Text") en Settings → Variables & Secrets del
+  // dashboard, que sí persisten aparte de cada deploy.
+  "vars": {
+    "CDO_API_BASE_URL": "http://api.argentina.cdopromocionales.com/v2/products",
+    "MAYA_API_BASE_URL": "https://api.mayapublicidad.com",
+    "MAYA_API_EMAIL": "artisticalaserkind@gmail.com",
+  },
   "observability": {
     "enabled": true,
   },
