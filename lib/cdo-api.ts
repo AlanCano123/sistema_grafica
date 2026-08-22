@@ -3,18 +3,6 @@ import { Product, ProductsResponse } from "./types";
 
 const CACHE_KEY = "cdo-products";
 
-// Estas variables viven en .env.local y NUNCA se exponen al navegador
-// porque este archivo solo se importa desde Server Components / route handlers.
-const API_BASE_URL = process.env.CDO_API_BASE_URL;
-const API_TOKEN = process.env.CDO_API_TOKEN;
-
-if (!API_BASE_URL || !API_TOKEN) {
-  // Falla rápido y claro en vez de arrastrar un error confuso más adelante.
-  throw new Error(
-    "Faltan las variables de entorno CDO_API_BASE_URL / CDO_API_TOKEN. Revisá tu archivo .env.local"
-  );
-}
-
 interface GetProductsParams {
   page?: number;
   pageSize?: number;
@@ -24,13 +12,29 @@ interface GetProductsParams {
  * Trae productos paginados desde la API de CDO Promocionales.
  * Se ejecuta siempre en el servidor (Server Component), así el token
  * nunca viaja al navegador del cliente.
+ *
+ * Las env vars se leen ACÁ (en tiempo de request), no arriba a nivel de
+ * módulo — en Cloudflare Workers el build corre en un sandbox aparte,
+ * antes de que exista el Worker, y ahí `process.env` puede estar vacío
+ * aunque las variables estén bien cargadas en el dashboard (que solo
+ * las inyecta en tiempo de ejecución real). Leerlas eager rompía el
+ * build entero con "faltan las variables" aunque runtime las tuviera.
  */
 export async function getProducts({
   page = 1,
   pageSize = 24,
 }: GetProductsParams = {}): Promise<ProductsResponse> {
-  const url = new URL(API_BASE_URL as string);
-  url.searchParams.set("auth_token", API_TOKEN as string);
+  const API_BASE_URL = process.env.CDO_API_BASE_URL;
+  const API_TOKEN = process.env.CDO_API_TOKEN;
+
+  if (!API_BASE_URL || !API_TOKEN) {
+    throw new Error(
+      "Faltan las variables de entorno CDO_API_BASE_URL / CDO_API_TOKEN. Revisá tu archivo .env.local (o las Variables & Secrets del Worker en Cloudflare)."
+    );
+  }
+
+  const url = new URL(API_BASE_URL);
+  url.searchParams.set("auth_token", API_TOKEN);
   url.searchParams.set("page_size", String(pageSize));
   url.searchParams.set("page_number", String(page));
 

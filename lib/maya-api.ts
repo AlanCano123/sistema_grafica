@@ -6,16 +6,19 @@ import { MayaArticle, MayaLoginResponse, MayaPhoto } from "./maya-types";
 const CACHE_KEY = "maya-products";
 const MAYA_TOKEN_KEY = "maya-token";
 
-// Estas variables viven en .env.local y NUNCA se exponen al navegador
-// porque este archivo solo se importa desde Server Components / route handlers.
-const MAYA_BASE_URL = process.env.MAYA_API_BASE_URL;
-const MAYA_EMAIL = process.env.MAYA_API_EMAIL;
-const MAYA_PASSWORD = process.env.MAYA_API_PASSWORD;
-
-// A diferencia de CDO, Maya es un proveedor "opcional": si faltan credenciales
-// o la API falla, el catálogo sigue funcionando solo con CDO en vez de romper
-// toda la página (por eso acá NO se hace throw como en cdo-api.ts).
-const MAYA_ENABLED = Boolean(MAYA_BASE_URL && MAYA_EMAIL && MAYA_PASSWORD);
+// Leídas en función, no a nivel de módulo: en Cloudflare Workers el build
+// corre en un sandbox aparte donde `process.env` puede estar vacío aunque
+// el Worker en runtime sí las tenga (las inyecta recién en tiempo de
+// ejecución real) — leerlas una sola vez al importar el módulo las dejaba
+// congeladas en "undefined" para siempre. A diferencia de CDO, Maya es un
+// proveedor "opcional": si faltan credenciales o la API falla, el catálogo
+// sigue funcionando solo con CDO en vez de romper toda la página.
+function getMayaConfig() {
+  const baseUrl = process.env.MAYA_API_BASE_URL;
+  const email = process.env.MAYA_API_EMAIL;
+  const password = process.env.MAYA_API_PASSWORD;
+  return { baseUrl, email, password, enabled: Boolean(baseUrl && email && password) };
+}
 
 // Prefijo para que los ids de Maya (que son strings tipo "1", "42") nunca
 // choquen con los ids numéricos de CDO al combinar ambos catálogos.
@@ -35,10 +38,11 @@ const MAYA_PREFIX = "maya-";
 let inflightLogin: Promise<string> | null = null;
 
 async function mayaLogin(): Promise<string> {
-  const res = await fetch(`${MAYA_BASE_URL}/api/login`, {
+  const { baseUrl, email, password } = getMayaConfig();
+  const res = await fetch(`${baseUrl}/api/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ email: MAYA_EMAIL, password: MAYA_PASSWORD }),
+    body: JSON.stringify({ email, password }),
     cache: "no-store",
   });
 
@@ -82,7 +86,8 @@ async function getMayaToken(): Promise<string> {
 /** Fetch autenticado contra la API de Maya; reintenta una vez si el token quedó inválido (401). */
 async function mayaFetch(path: string, retryOn401 = true): Promise<Response> {
   const token = await getMayaToken();
-  const res = await fetch(`${MAYA_BASE_URL}${path}`, {
+  const { baseUrl } = getMayaConfig();
+  const res = await fetch(`${baseUrl}${path}`, {
     headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
     // Manejamos el cache de productos nosotros mismos (más abajo) porque
     // el header Authorization cambia con cada login y no queremos que el
@@ -183,7 +188,7 @@ const PRODUCTS_TTL_MS = 60 * 60 * 1000;
  * venció se sirve la versión vieja al toque y se refresca atrás.
  */
 export async function getMayaProducts(): Promise<Product[]> {
-  if (!MAYA_ENABLED) return [];
+  if (!getMayaConfig().enabled) return [];
 
   const cached = await getCache<Product[]>(CACHE_KEY);
 
