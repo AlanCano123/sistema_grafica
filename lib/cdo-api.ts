@@ -1,3 +1,4 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getCache, setCache } from "./catalog-cache";
 import { Product, ProductsResponse } from "./types";
 
@@ -13,23 +14,26 @@ interface GetProductsParams {
  * Se ejecuta siempre en el servidor (Server Component), así el token
  * nunca viaja al navegador del cliente.
  *
- * Las env vars se leen ACÁ (en tiempo de request), no arriba a nivel de
- * módulo — en Cloudflare Workers el build corre en un sandbox aparte,
- * antes de que exista el Worker, y ahí `process.env` puede estar vacío
- * aunque las variables estén bien cargadas en el dashboard (que solo
- * las inyecta en tiempo de ejecución real). Leerlas eager rompía el
- * build entero con "faltan las variables" aunque runtime las tuviera.
+ * Las env vars se leen del binding de Cloudflare (getCloudflareContext().env),
+ * no de `process.env` — las "Variables & Secrets" que se configuran en el
+ * dashboard de Cloudflare llenan `env.X` (lo mismo que D1/KV), NO
+ * `process.env.X`. Local funciona igual gracias a .dev.vars (mismo
+ * mecanismo, simulado) + initOpenNextCloudflareForDev() en next.config.ts.
+ * Además se lee en tiempo de request, no a nivel de módulo: el build de
+ * Cloudflare corre en un sandbox aparte, antes de que exista el Worker,
+ * ahí no hay binding todavía.
  */
 export async function getProducts({
   page = 1,
   pageSize = 24,
 }: GetProductsParams = {}): Promise<ProductsResponse> {
-  const API_BASE_URL = process.env.CDO_API_BASE_URL;
-  const API_TOKEN = process.env.CDO_API_TOKEN;
+  const { env } = await getCloudflareContext({ async: true });
+  const API_BASE_URL = env.CDO_API_BASE_URL;
+  const API_TOKEN = env.CDO_API_TOKEN;
 
   if (!API_BASE_URL || !API_TOKEN) {
     throw new Error(
-      "Faltan las variables de entorno CDO_API_BASE_URL / CDO_API_TOKEN. Revisá tu archivo .env.local (o las Variables & Secrets del Worker en Cloudflare)."
+      "Faltan las variables de entorno CDO_API_BASE_URL / CDO_API_TOKEN. Revisá tu .dev.vars local (o las Variables & Secrets del Worker en Cloudflare)."
     );
   }
 
