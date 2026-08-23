@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ShieldCheck, Clock, MessageSquare } from "lucide-react";
-import { MATERIALS, calculatePrice } from "@/lib/materials";
+import { calculatePrice, type Material } from "@/lib/materials";
 import { formatPrice } from "@/lib/product-helpers";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 
@@ -12,22 +12,41 @@ const TRUST_ITEMS = [
   { icon: MessageSquare, label: "Atención personalizada" },
 ];
 
-export default function PriceCalculator() {
+export default function PriceCalculator({
+  materials,
+  moMinutes,
+  moPerMinute,
+  retailPct,
+}: {
+  materials: Material[];
+  moMinutes: number; // promedio fijo, el cliente no lo carga (no lo conoce)
+  moPerMinute: number;
+  retailPct: number;
+}) {
   const [largo, setLargo] = useState("");
   const [ancho, setAncho] = useState("");
-  const [materialId, setMaterialId] = useState(MATERIALS[0].id);
+  const [materialId, setMaterialId] = useState<number>(materials[0]?.id ?? 0);
 
-  const material = MATERIALS.find((m) => m.id === materialId) ?? MATERIALS[0];
+  const material = materials.find((m) => m.id === materialId) ?? materials[0];
 
-  const price = useMemo(() => {
-    return calculatePrice(parseFloat(largo), parseFloat(ancho), materialId);
-  }, [largo, ancho, materialId]);
+  // Inputs en cm (más cómodo para el cliente) -> la fórmula real trabaja en mm.
+  const result = useMemo(() => {
+    const largoMm = parseFloat(largo) * 10;
+    const anchoMm = parseFloat(ancho) * 10;
+    return calculatePrice(anchoMm, largoMm, moMinutes, material, moPerMinute, 0, retailPct);
+  }, [largo, ancho, material, moMinutes, moPerMinute, retailPct]);
+
+  const price = result?.retailPrice ?? null;
 
   const whatsappHref = price
     ? buildWhatsAppUrl(
-        `Hola! Quiero pedir un presupuesto en Láser Kind. Medidas: ${largo}x${ancho}cm en ${material.label}. Precio estimado: ${formatPrice(price)}.`
+        `Hola! Quiero pedir un presupuesto en Láser Kind. Medidas: ${largo}x${ancho}cm en ${material?.name}. Precio estimado: ${formatPrice(price)}.`
       )
     : buildWhatsAppUrl();
+
+  if (materials.length === 0) {
+    return null;
+  }
 
   return (
     <section id="calculadora" className="border-b border-white/5 px-5 py-20 md:px-8 md:py-28">
@@ -84,12 +103,12 @@ export default function PriceCalculator() {
               <select
                 id="calc-material"
                 value={materialId}
-                onChange={(e) => setMaterialId(e.target.value)}
+                onChange={(e) => setMaterialId(Number(e.target.value))}
                 className="w-full rounded-lg border border-white/10 bg-neutral-900 px-4 py-3 text-white focus:border-brand-red focus:outline-none"
               >
-                {MATERIALS.map((m) => (
+                {materials.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.label}
+                    {m.name}
                   </option>
                 ))}
               </select>
