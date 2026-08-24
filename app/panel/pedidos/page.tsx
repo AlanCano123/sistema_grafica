@@ -1,6 +1,28 @@
-import { getOrdersByStatus, getOnTimeStats, OrderStatus } from "@/lib/orders";
+import Link from "next/link";
+import {
+  budgetNumber,
+  getBalance,
+  getOnTimeStats,
+  getOrders,
+  getOrdersByStatus,
+  type Order,
+  type OrderStatus,
+} from "@/lib/orders";
+import { getMaterials } from "@/lib/materials-db";
+import type { Material } from "@/lib/materials";
+import { formatPrice } from "@/lib/product-helpers";
 import StatCard from "@/components/StatCard";
-import { Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Clock, CheckCircle2, AlertTriangle, Wallet } from "lucide-react";
+import { createOrderAction, deleteOrderAction, updateOrderAction, updateOrderStatusAction } from "./actions";
+
+// D1 solo existe en tiempo real del Worker.
+export const dynamic = "force-dynamic";
+
+const inputClass =
+  "w-full rounded border border-gray-200 px-2 py-1.5 text-sm text-gray-800 focus:border-[#4e73df] focus:outline-none";
+
+const tinyInputClass =
+  "w-full min-w-0 rounded border border-gray-200 px-1 py-1 text-xs text-gray-800 focus:border-[#4e73df] focus:outline-none";
 
 const COLUMNS: { status: OrderStatus; title: string; accent: string }[] = [
   { status: "pendiente", title: "Pendientes / Aprobados", accent: "#f6c23e" },
@@ -8,12 +30,35 @@ const COLUMNS: { status: OrderStatus; title: string; accent: string }[] = [
   { status: "terminado", title: "Terminados", accent: "#1cc88a" },
 ];
 
-export default async function PedidosPage() {
-  const onTime = getOnTimeStats();
+interface PageProps {
+  searchParams: Promise<{ view?: string }>;
+}
+
+export default async function PedidosPage({ searchParams }: PageProps) {
+  const { view } = await searchParams;
+  const [orders, materials] = await Promise.all([getOrders(), getMaterials()]);
+
+  return view === "cuentas" ? (
+    <CuentasCorrientes orders={orders} materials={materials} />
+  ) : (
+    <Kanban orders={orders} materials={materials} />
+  );
+}
+
+// --- Vista Kanban --------------------------------------------------------
+
+function Kanban({ orders, materials }: { orders: Order[]; materials: Material[] }) {
+  const onTime = getOnTimeStats(orders);
+  const enCola = getOrdersByStatus(orders, "pendiente").length + getOrdersByStatus(orders, "produccion").length;
 
   return (
     <>
-      <h1 className="mb-6 text-xl font-bold text-gray-800">Pedidos</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-gray-800">Pedidos</h1>
+        <Link href="/panel/pedidos?view=cuentas" className="text-sm font-semibold text-[#4e73df] hover:underline">
+          Ver cuentas corrientes →
+        </Link>
+      </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
@@ -23,59 +68,108 @@ export default async function PedidosPage() {
           icon={CheckCircle2}
           sublabel={`${onTime.onTime} entregados a tiempo`}
         />
-        <StatCard
-          label="Entregas con retraso"
-          value={String(onTime.late)}
-          accent="red"
-          icon={AlertTriangle}
-          sublabel="Sobre el total de entregados"
-        />
-        <StatCard
-          label="En cola"
-          value={String(getOrdersByStatus("pendiente").length + getOrdersByStatus("produccion").length)}
-          accent="blue"
-          icon={Clock}
-          sublabel="Pendientes + en producción"
-        />
+        <StatCard label="Entregas con retraso" value={String(onTime.late)} accent="red" icon={AlertTriangle} sublabel="Sobre el total de entregados" />
+        <StatCard label="En cola" value={String(enCola)} accent="blue" icon={Clock} sublabel="Pendientes + en producción" />
+      </div>
+
+      <div className="mb-6 rounded border border-gray-100 bg-white p-5 shadow-sm">
+        <h2 className="mb-4 text-sm font-bold text-[#4e73df]">Cargar pedido</h2>
+        <form action={createOrderAction} className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <label className="text-xs text-gray-500">
+            Nº de orden
+            <input className={`mt-1 ${inputClass}`} name="order_number" placeholder="Ej: 1042" required />
+          </label>
+          <label className="text-xs text-gray-500">
+            Nº de expediente
+            <input className={`mt-1 ${inputClass}`} name="file_number" placeholder="Opcional" />
+          </label>
+          <label className="text-xs text-gray-500">
+            Cliente
+            <input className={`mt-1 ${inputClass}`} name="client_name" placeholder="Ej: Kiosco Don Mario" required />
+          </label>
+          <label className="text-xs text-gray-500">
+            Nombre del pedido / placa
+            <input className={`mt-1 ${inputClass}`} name="job_name" placeholder="Ej: Cartel corpóreo MDF" required />
+          </label>
+          <label className="text-xs text-gray-500">
+            Estado
+            <select className={`mt-1 ${inputClass}`} name="status" defaultValue="pendiente">
+              <option value="pendiente">Pendiente</option>
+              <option value="produccion">En producción</option>
+              <option value="terminado">Terminado</option>
+            </select>
+          </label>
+          <label className="text-xs text-gray-500">
+            Fecha a entregar
+            <input className={`mt-1 ${inputClass}`} name="due_date" type="date" />
+          </label>
+          <label className="text-xs text-gray-500">
+            Total ($)
+            <input className={`mt-1 ${inputClass}`} name="total_amount" type="number" step="any" placeholder="0" />
+          </label>
+          <label className="text-xs text-gray-500">
+            Seña ($)
+            <input className={`mt-1 ${inputClass}`} name="deposit_amount" type="number" step="any" placeholder="0" />
+          </label>
+          <label className="col-span-2 flex items-center gap-2 self-end pb-1.5 text-xs text-gray-500 md:col-span-1">
+            <input type="checkbox" name="has_deposit" value="1" className="h-4 w-4" />
+            Deja seña
+          </label>
+          <label className="text-xs text-gray-500">
+            Material (opcional)
+            <select className={`mt-1 ${inputClass}`} name="material_id" defaultValue="">
+              <option value="">Sin especificar</option>
+              {materials.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs text-gray-500">
+            Ancho (mm)
+            <input className={`mt-1 ${inputClass}`} name="width_mm" type="number" step="any" placeholder="Opcional" />
+          </label>
+          <label className="text-xs text-gray-500">
+            Largo (mm)
+            <input className={`mt-1 ${inputClass}`} name="length_mm" type="number" step="any" placeholder="Opcional" />
+          </label>
+          <label className="text-xs text-gray-500">
+            Minutos MO
+            <input className={`mt-1 ${inputClass}`} name="mo_minutes" type="number" step="any" placeholder="Opcional" />
+          </label>
+          <p className="col-span-2 text-xs text-gray-400 md:col-span-4">
+            Material/medidas/minutos son opcionales — sin ellos el pedido no calcula costo/margen en Finanzas, pero
+            se carga igual.
+          </p>
+          <div className="col-span-2 flex items-end md:col-span-4">
+            <button type="submit" className="rounded bg-[#1cc88a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#17a674]">
+              Cargar pedido
+            </button>
+          </div>
+        </form>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {COLUMNS.map(({ status, title, accent }) => {
-          const orders = getOrdersByStatus(status);
+          const columnOrders = getOrdersByStatus(orders, status);
           return (
             <div key={status} className="rounded border border-gray-100 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                 <h2 className="text-sm font-bold" style={{ color: accent }}>
                   {title}
                 </h2>
-                <span
-                  className="rounded-full px-2 py-0.5 text-xs font-bold text-white"
-                  style={{ backgroundColor: accent }}
-                >
-                  {orders.length}
+                <span className="rounded-full px-2 py-0.5 text-xs font-bold text-white" style={{ backgroundColor: accent }}>
+                  {columnOrders.length}
                 </span>
               </div>
               <div className="flex flex-col divide-y divide-gray-100">
-                {orders.length === 0 ? (
+                {columnOrders.length === 0 ? (
                   <p className="px-4 py-6 text-center text-sm text-gray-400">Nada acá.</p>
                 ) : (
-                  orders.map((order) => (
-                    <div key={order.id} className="px-4 py-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-gray-400">{order.id}</span>
-                        <span className="text-xs text-gray-400">
-                          {new Date(order.dueDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-sm font-medium text-gray-800">{order.client}</p>
-                      <p className="text-xs text-gray-500">{order.description}</p>
-                      {order.deliveredOnTime === false && (
-                        <span className="mt-1 inline-block rounded-full bg-[#e74a3b]/10 px-2 py-0.5 text-[10px] font-bold text-[#e74a3b]">
-                          Entregado con retraso
-                        </span>
-                      )}
-                    </div>
-                  ))
+                  // mismo motivo que en CuentaRow: el <select> de abajo es
+                  // uncontrolled (defaultValue).
+                  columnOrders.map((order) => <KanbanCard key={JSON.stringify(order)} order={order} />)
                 )}
               </div>
             </div>
@@ -83,5 +177,234 @@ export default async function PedidosPage() {
         })}
       </div>
     </>
+  );
+}
+
+function KanbanCard({ order }: { order: Order }) {
+  const balance = getBalance(order);
+  const formId = `status-${order.id}`;
+  return (
+    <div className="px-4 py-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-gray-400">
+          #{order.order_number} · {budgetNumber(order)}
+        </span>
+        {order.due_date && (
+          <span className="text-xs text-gray-400">
+            {new Date(order.due_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+          </span>
+        )}
+      </div>
+      <p className="mt-1 text-sm font-medium text-gray-800">{order.client_name}</p>
+      <p className="text-xs text-gray-500">{order.job_name}</p>
+      {balance > 0 && (
+        <span className="mt-1 inline-block rounded-full bg-[#e74a3b]/10 px-2 py-0.5 text-[10px] font-bold text-[#e74a3b]">
+          Debe {formatPrice(balance)}
+        </span>
+      )}
+      <form action={updateOrderStatusAction} id={formId} className="mt-2 flex items-center gap-2">
+        <input type="hidden" name="id" value={order.id} />
+        <select name="status" defaultValue={order.status} className="rounded border border-gray-200 px-2 py-1 text-xs">
+          <option value="pendiente">Pendiente</option>
+          <option value="produccion">En producción</option>
+          <option value="terminado">Terminado</option>
+        </select>
+        <button type="submit" className="rounded bg-[#4e73df] px-2 py-1 text-xs font-semibold text-white hover:bg-[#3d5cc4]">
+          Guardar
+        </button>
+      </form>
+    </div>
+  );
+}
+
+// --- Vista Cuentas corrientes ---------------------------------------------
+
+function CuentasCorrientes({ orders, materials }: { orders: Order[]; materials: Material[] }) {
+  const totalPendiente = orders.reduce((sum, o) => {
+    const balance = getBalance(o);
+    return balance > 0 ? sum + balance : sum;
+  }, 0);
+
+  return (
+    <>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-gray-800">Cuentas corrientes</h1>
+        <Link href="/panel/pedidos" className="text-sm font-semibold text-[#4e73df] hover:underline">
+          ← Ver tablero de pedidos
+        </Link>
+      </div>
+      <p className="mb-6 max-w-2xl text-sm text-gray-500">
+        Quién debe qué sobre sus pedidos — no confundir con Deudas (esa es con proveedores/terceros).
+      </p>
+
+      <div className="mb-6 grid grid-cols-1 sm:grid-cols-3">
+        <StatCard label="Total pendiente de cobro" value={formatPrice(totalPendiente)} accent="red" icon={Wallet} sublabel="Suma de saldos > 0" />
+      </div>
+
+      <div className="rounded border border-gray-100 bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full table-fixed text-sm">
+            <colgroup>
+              <col className="w-[6%]" />
+              <col className="w-[7%]" />
+              <col className="w-[10%]" />
+              <col className="w-[11%]" />
+              <col className="w-[7%]" />
+              <col className="w-[9%]" />
+              <col className="w-[11%]" />
+              <col className="w-[7%]" />
+              <col className="w-[16%]" />
+              <col className="w-[7%]" />
+              <col className="w-[9%]" />
+            </colgroup>
+            <thead>
+              <tr className="bg-gray-50 text-left text-xs tracking-wide text-gray-500 uppercase">
+                <th className="px-3 py-3">Nº orden</th>
+                <th className="px-3 py-3">Nº expediente</th>
+                <th className="px-3 py-3">Cliente</th>
+                <th className="px-3 py-3">Nombre de placa</th>
+                <th className="px-3 py-3">Estado</th>
+                <th className="px-3 py-3">Total ($)</th>
+                <th className="px-3 py-3">Seña ($)</th>
+                <th className="px-3 py-3 text-right">Saldo</th>
+                <th className="px-3 py-3">Material / medida / min</th>
+                <th className="px-3 py-3">Formulario</th>
+                <th className="px-3 py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.length === 0 ? (
+                <tr>
+                  <td colSpan={11} className="px-3 py-6 text-center text-sm text-gray-400">
+                    No hay pedidos cargados todavía.
+                  </td>
+                </tr>
+              ) : (
+                // key incluye el contenido: los inputs son "uncontrolled"
+                // (defaultValue) — sin esto, tras "Guardar" la fila queda
+                // visualmente con el valor viejo aunque la base ya se
+                // actualizó (React no resetea defaultValue en un
+                // re-render normal, solo al montar).
+                orders.map((o) => <CuentaRow key={JSON.stringify(o)} order={o} materials={materials} />)
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Forms reales, fuera de la tabla — <form> no puede envolver un <tr>
+          (HTML inválido, el browser lo descarta). Cada fila se asocia acá
+          vía el atributo `form` (mismo patrón que Materiales/Configuración). */}
+      {orders.map((o) => (
+        <form key={o.id} id={`order-${o.id}`} action={updateOrderAction} />
+      ))}
+    </>
+  );
+}
+
+function CuentaRow({ order, materials }: { order: Order; materials: Material[] }) {
+  const formId = `order-${order.id}`;
+  const balance = getBalance(order);
+  return (
+    <tr className="border-t border-gray-100 hover:bg-gray-50">
+      <td className="px-3 py-2">
+        <input form={formId} type="hidden" name="id" value={order.id} />
+        <input form={formId} className={inputClass} name="order_number" defaultValue={order.order_number} required />
+      </td>
+      <td className="px-3 py-2">
+        <input form={formId} className={inputClass} name="file_number" defaultValue={order.file_number ?? ""} />
+      </td>
+      <td className="px-3 py-2">
+        <input form={formId} className={inputClass} name="client_name" defaultValue={order.client_name} required />
+      </td>
+      <td className="px-3 py-2">
+        <input form={formId} className={inputClass} name="job_name" defaultValue={order.job_name} required />
+      </td>
+      <td className="px-3 py-2">
+        <select form={formId} name="status" defaultValue={order.status} className={inputClass}>
+          <option value="pendiente">Pendiente</option>
+          <option value="produccion">En producción</option>
+          <option value="terminado">Terminado</option>
+        </select>
+      </td>
+      <td className="px-3 py-2">
+        <input form={formId} className={inputClass} name="total_amount" type="number" step="any" defaultValue={order.total_amount} />
+      </td>
+      <td className="px-3 py-2">
+        <div className="flex items-center gap-1.5">
+          <input form={formId} type="checkbox" name="has_deposit" value="1" defaultChecked={order.has_deposit === 1} className="h-4 w-4 shrink-0" />
+          <input form={formId} className={inputClass} name="deposit_amount" type="number" step="any" defaultValue={order.deposit_amount} />
+        </div>
+      </td>
+      <td className="px-3 py-2 text-right text-xs font-bold whitespace-nowrap text-gray-700">{formatPrice(balance)}</td>
+      <td className="px-2 py-2">
+        <select form={formId} name="material_id" defaultValue={order.material_id ?? ""} className={`${tinyInputClass} mb-1`}>
+          <option value="">Sin material</option>
+          {materials.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </select>
+        <div className="grid grid-cols-3 gap-1">
+          <input
+            form={formId}
+            className={tinyInputClass}
+            name="width_mm"
+            type="number"
+            step="any"
+            defaultValue={order.width_mm ?? ""}
+            title="Ancho (mm)"
+            placeholder="Ancho"
+          />
+          <input
+            form={formId}
+            className={tinyInputClass}
+            name="length_mm"
+            type="number"
+            step="any"
+            defaultValue={order.length_mm ?? ""}
+            title="Largo (mm)"
+            placeholder="Largo"
+          />
+          <input
+            form={formId}
+            className={tinyInputClass}
+            name="mo_minutes"
+            type="number"
+            step="any"
+            defaultValue={order.mo_minutes ?? ""}
+            title="Minutos MO"
+            placeholder="Min"
+          />
+        </div>
+      </td>
+      <td className="px-3 py-2">
+        <select form={formId} name="form_paid" defaultValue={order.form_paid === null ? "" : String(order.form_paid)} className={inputClass}>
+          <option value="">—</option>
+          <option value="1">Sí</option>
+          <option value="0">No</option>
+        </select>
+      </td>
+      <td className="px-3 py-2">
+        {/* delivered_on_time no tiene su propio control visible acá — se
+            guarda como está (o null) salvo que se agregue más adelante;
+            no es parte de lo pedido para esta vista. */}
+        <input form={formId} type="hidden" name="delivered_on_time" value={order.delivered_on_time === null ? "" : String(order.delivered_on_time)} />
+        <div className="flex flex-col gap-1">
+          <button form={formId} type="submit" className="w-full rounded bg-[#4e73df] px-2 py-1 text-xs font-semibold text-white hover:bg-[#3d5cc4]">
+            Guardar
+          </button>
+          <button
+            form={formId}
+            type="submit"
+            formAction={deleteOrderAction}
+            className="w-full rounded bg-[#e74a3b] px-2 py-1 text-xs font-semibold text-white hover:bg-[#c8392c]"
+          >
+            Borrar
+          </button>
+        </div>
+      </td>
+    </tr>
   );
 }

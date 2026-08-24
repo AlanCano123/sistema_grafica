@@ -76,8 +76,13 @@ function CostTable({
             </tr>
           </thead>
           <tbody>
+            {/* key incluye el contenido: los inputs de CostRow son
+                "uncontrolled" (defaultValue) — sin esto, tras "Guardar" la
+                fila queda visualmente con el valor viejo aunque la base ya
+                se actualizó (React no resetea defaultValue en un
+                re-render normal, solo al montar). */}
             {costs.map((c) => (
-              <CostRow key={c.id} cost={c} />
+              <CostRow key={JSON.stringify(c)} cost={c} />
             ))}
             <tr>
               <td className="px-3 py-2">
