@@ -82,11 +82,24 @@ export function getOrdersByStatus(orders: Order[], status: OrderStatus): Order[]
   return orders.filter((o) => o.status === status);
 }
 
-export function getOnTimeStats(orders: Order[]): { onTime: number; late: number; pct: number } {
-  const delivered = orders.filter((o) => o.delivered_on_time !== null);
-  const onTime = delivered.filter((o) => o.delivered_on_time === 1).length;
-  const late = delivered.length - onTime;
-  const pct = delivered.length > 0 ? Math.round((onTime / delivered.length) * 100) : 0;
+/** Vencido: tiene fecha de entrega, ya pasó, y todavía no está Terminado.
+ * No depende de `delivered_on_time` (ese es a mano, solo tiene sentido una
+ * vez entregado) — esto es en vivo, cambia solo con la fecha de hoy. */
+export function isOverdue(order: Order, today: string = new Date().toISOString().slice(0, 10)): boolean {
+  return order.status !== "terminado" && order.due_date !== null && order.due_date < today;
+}
+
+export function getOnTimeStats(
+  orders: Order[],
+  today: string = new Date().toISOString().slice(0, 10)
+): { onTime: number; late: number; pct: number } {
+  const onTime = orders.filter((o) => o.delivered_on_time === 1).length;
+  // "Con retraso" = marcado a mano como tal, o vencido sin entregar todavía
+  // (pedido Fernando: si la fecha de entrega ya pasó y no está Terminado,
+  // cuenta como retraso aunque no se haya cerrado el pedido).
+  const late = orders.filter((o) => o.delivered_on_time === 0 || (o.delivered_on_time === null && isOverdue(o, today))).length;
+  const total = onTime + late;
+  const pct = total > 0 ? Math.round((onTime / total) * 100) : 0;
   return { onTime, late, pct };
 }
 
@@ -164,12 +177,14 @@ export async function updateOrder(id: number, data: OrderUpdateInput): Promise<v
     .run();
 }
 
-/** Solo cambia el estado (usado desde el mini-form de cada card del Kanban).
- * "Entregado a tiempo" se maneja aparte, desde Cuentas corrientes, para no
- * mezclar dos cosas en un mismo mini-form. */
-export async function updateOrderStatus(id: number, status: OrderStatus): Promise<void> {
+/** Cambia el estado y, si corresponde, "¿entregado a tiempo?" — usado desde
+ * el mini-form de cada card del Kanban (esa pregunta solo se muestra ahí
+ * cuando el pedido está Terminado). */
+export async function updateOrderStatus(id: number, status: OrderStatus, deliveredOnTime: 0 | 1 | null): Promise<void> {
   const { env } = await getCloudflareContext({ async: true });
-  await env.DB.prepare("UPDATE orders SET status = ? WHERE id = ?").bind(status, id).run();
+  await env.DB.prepare("UPDATE orders SET status = ?, delivered_on_time = ? WHERE id = ?")
+    .bind(status, deliveredOnTime, id)
+    .run();
 }
 
 export async function deleteOrder(id: number): Promise<void> {

@@ -1,4 +1,4 @@
-import { getDebts, getSales } from "@/lib/business";
+import { getDebts, getDebtBalance, getSales } from "@/lib/business";
 import { formatPrice } from "@/lib/product-helpers";
 import StatCard from "@/components/StatCard";
 import SalesAreaChart from "@/components/panel/SalesAreaChart";
@@ -15,8 +15,10 @@ export default async function PanelPage() {
   const receivables = debts.filter((d) => d.direction === "receivable" && d.status === "pending");
   const payables = debts.filter((d) => d.direction === "payable" && d.status === "pending");
 
-  const totalReceivable = receivables.reduce((sum, d) => sum + d.amount, 0);
-  const totalPayable = payables.reduce((sum, d) => sum + d.amount, 0);
+  // Saldo (monto - pagado), no el monto bruto — un pago parcial ya
+  // cargado no debe seguir contando entero acá.
+  const totalReceivable = receivables.reduce((sum, d) => sum + getDebtBalance(d), 0);
+  const totalPayable = payables.reduce((sum, d) => sum + getDebtBalance(d), 0);
   const totalSales = sales.reduce((sum, s) => sum + s.amount, 0);
   const balance = totalReceivable - totalPayable;
 
@@ -36,9 +38,9 @@ export default async function PanelPage() {
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Te deben" value={formatPrice(totalReceivable)} accent="green" icon={TrendingUp} sublabel={`${receivables.length} pendientes`} />
-        <StatCard label="Vos debés" value={formatPrice(totalPayable)} accent="red" icon={TrendingDown} sublabel={`${payables.length} pendientes`} />
-        <StatCard label="Balance" value={formatPrice(balance)} accent={balance >= 0 ? "blue" : "yellow"} icon={Wallet} sublabel="Te deben − vos debés" />
+        <StatCard label="Cobros pendientes" value={formatPrice(totalReceivable)} accent="green" icon={TrendingUp} sublabel={`${receivables.length} pendientes`} />
+        <StatCard label="Pagos pendientes" value={formatPrice(totalPayable)} accent="red" icon={TrendingDown} sublabel={`${payables.length} pendientes`} />
+        <StatCard label="Balance" value={formatPrice(balance)} accent={balance >= 0 ? "blue" : "yellow"} icon={Wallet} sublabel="Cobros − pagos pendientes" />
         <StatCard label="Ventas totales" value={formatPrice(totalSales)} accent="yellow" icon={DollarSign} sublabel={`${sales.length} ventas`} />
       </div>
 
@@ -51,16 +53,16 @@ export default async function PanelPage() {
         </div>
 
         <div className="rounded border border-gray-100 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-sm font-bold text-[#4e73df]">Deudas: quién a quién</h2>
+          <h2 className="mb-4 text-sm font-bold text-[#4e73df]">Movimientos: quién a quién</h2>
           <div className="h-48">
             <DebtsDoughnutChart receivable={totalReceivable} payable={totalPayable} />
           </div>
           <div className="mt-4 flex justify-center gap-4 text-xs text-gray-500">
             <span className="flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-full bg-[#1cc88a]" /> Te deben
+              <span className="inline-block h-2 w-2 rounded-full bg-[#1cc88a]" /> Cobros pendientes
             </span>
             <span className="flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-full bg-[#e74a3b]" /> Vos debés
+              <span className="inline-block h-2 w-2 rounded-full bg-[#e74a3b]" /> Pagos pendientes
             </span>
           </div>
         </div>

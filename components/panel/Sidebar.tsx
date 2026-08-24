@@ -21,7 +21,7 @@ const NAV_ITEMS = [
   { href: "/panel/cotizador", label: "Cotizador", icon: Calculator },
   { href: "/panel/configuracion", label: "Configuración", icon: Settings },
   { href: "/panel/finanzas", label: "Finanzas", icon: PiggyBank },
-  { href: "/panel/deudas", label: "Deudas", icon: Wallet },
+  { href: "/panel/deudas", label: "Movimientos", icon: Wallet },
   { href: "/panel/ventas", label: "Ventas", icon: ShoppingCart },
 ];
 

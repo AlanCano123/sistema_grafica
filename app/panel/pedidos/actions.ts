@@ -102,7 +102,7 @@ export async function updateOrderAction(formData: FormData) {
 export async function updateOrderStatusAction(formData: FormData) {
   const id = Number(formData.get("id"));
   const status = String(formData.get("status") ?? "pendiente") as OrderStatus;
-  await updateOrderStatus(id, status);
+  await updateOrderStatus(id, status, tri(formData, "delivered_on_time"));
 
   // El mini-form del Kanban solo manda el estado — hace falta traer el
   // pedido completo (total/seña) para saber si ya está cobrado del todo.

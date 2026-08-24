@@ -5,6 +5,7 @@ import {
   getOnTimeStats,
   getOrders,
   getOrdersByStatus,
+  isOverdue,
   type Order,
   type OrderStatus,
 } from "@/lib/orders";
@@ -21,9 +22,6 @@ export const dynamic = "force-dynamic";
 const inputClass =
   "w-full rounded border border-gray-200 px-2 py-1.5 text-sm text-gray-800 focus:border-[#4e73df] focus:outline-none";
 
-const tinyInputClass =
-  "w-full min-w-0 rounded border border-gray-200 px-1 py-1 text-xs text-gray-800 focus:border-[#4e73df] focus:outline-none";
-
 const COLUMNS: { status: OrderStatus; title: string; accent: string }[] = [
   { status: "pendiente", title: "Pendientes / Aprobados", accent: "#f6c23e" },
   { status: "produccion", title: "En producción", accent: "#4e73df" },
@@ -39,7 +37,7 @@ export default async function PedidosPage({ searchParams }: PageProps) {
   const [orders, materials] = await Promise.all([getOrders(), getMaterials()]);
 
   return view === "cuentas" ? (
-    <CuentasCorrientes orders={orders} materials={materials} />
+    <CuentasCorrientes orders={orders} />
   ) : (
     <Kanban orders={orders} materials={materials} />
   );
@@ -182,6 +180,7 @@ function Kanban({ orders, materials }: { orders: Order[]; materials: Material[] 
 
 function KanbanCard({ order }: { order: Order }) {
   const balance = getBalance(order);
+  const overdue = isOverdue(order);
   const formId = `status-${order.id}`;
   return (
     <div className="px-4 py-3">
@@ -190,28 +189,51 @@ function KanbanCard({ order }: { order: Order }) {
           #{order.order_number} · {budgetNumber(order)}
         </span>
         {order.due_date && (
-          <span className="text-xs text-gray-400">
+          <span className={`text-xs ${overdue ? "font-bold text-[#e74a3b]" : "text-gray-400"}`}>
             {new Date(order.due_date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
           </span>
         )}
       </div>
       <p className="mt-1 text-sm font-medium text-gray-800">{order.client_name}</p>
       <p className="text-xs text-gray-500">{order.job_name}</p>
-      {balance > 0 && (
-        <span className="mt-1 inline-block rounded-full bg-[#e74a3b]/10 px-2 py-0.5 text-[10px] font-bold text-[#e74a3b]">
-          Debe {formatPrice(balance)}
-        </span>
-      )}
-      <form action={updateOrderStatusAction} id={formId} className="mt-2 flex items-center gap-2">
+      <div className="mt-1 flex flex-wrap gap-1">
+        {balance > 0 && (
+          <span className="inline-block rounded-full bg-[#e74a3b]/10 px-2 py-0.5 text-[10px] font-bold text-[#e74a3b]">
+            Debe {formatPrice(balance)}
+          </span>
+        )}
+        {overdue && (
+          <span className="inline-block rounded-full bg-[#f6c23e]/20 px-2 py-0.5 text-[10px] font-bold text-[#b3860a]">
+            Atrasado — venció el {new Date(order.due_date as string).toLocaleDateString("es-AR")}
+          </span>
+        )}
+      </div>
+      <form action={updateOrderStatusAction} id={formId} className="mt-2 flex flex-col gap-2">
         <input type="hidden" name="id" value={order.id} />
-        <select name="status" defaultValue={order.status} className="rounded border border-gray-200 px-2 py-1 text-xs">
-          <option value="pendiente">Pendiente</option>
-          <option value="produccion">En producción</option>
-          <option value="terminado">Terminado</option>
-        </select>
-        <button type="submit" className="rounded bg-[#4e73df] px-2 py-1 text-xs font-semibold text-white hover:bg-[#3d5cc4]">
-          Guardar
-        </button>
+        <div className="flex items-center gap-2">
+          <select name="status" defaultValue={order.status} className="rounded border border-gray-200 px-2 py-1 text-xs">
+            <option value="pendiente">Pendiente</option>
+            <option value="produccion">En producción</option>
+            <option value="terminado">Terminado</option>
+          </select>
+          <button type="submit" className="rounded bg-[#4e73df] px-2 py-1 text-xs font-semibold text-white hover:bg-[#3d5cc4]">
+            Guardar
+          </button>
+        </div>
+        {order.status === "terminado" && (
+          <label className="flex items-center gap-1.5 text-xs text-gray-500">
+            ¿A tiempo?
+            <select
+              name="delivered_on_time"
+              defaultValue={order.delivered_on_time === null ? "" : String(order.delivered_on_time)}
+              className="rounded border border-gray-200 px-1.5 py-1 text-xs"
+            >
+              <option value="">—</option>
+              <option value="1">Sí</option>
+              <option value="0">No</option>
+            </select>
+          </label>
+        )}
       </form>
     </div>
   );
@@ -219,7 +241,7 @@ function KanbanCard({ order }: { order: Order }) {
 
 // --- Vista Cuentas corrientes ---------------------------------------------
 
-function CuentasCorrientes({ orders, materials }: { orders: Order[]; materials: Material[] }) {
+function CuentasCorrientes({ orders }: { orders: Order[] }) {
   const totalPendiente = orders.reduce((sum, o) => {
     const balance = getBalance(o);
     return balance > 0 ? sum + balance : sum;
@@ -234,7 +256,7 @@ function CuentasCorrientes({ orders, materials }: { orders: Order[]; materials: 
         </Link>
       </div>
       <p className="mb-6 max-w-2xl text-sm text-gray-500">
-        Quién debe qué sobre sus pedidos — no confundir con Deudas (esa es con proveedores/terceros).
+        Quién debe qué sobre sus pedidos — no confundir con Movimientos (esa es con proveedores/terceros).
       </p>
 
       <div className="mb-6 grid grid-cols-1 sm:grid-cols-3">
@@ -245,17 +267,16 @@ function CuentasCorrientes({ orders, materials }: { orders: Order[]; materials: 
         <div className="overflow-x-auto">
           <table className="w-full table-fixed text-sm">
             <colgroup>
-              <col className="w-[6%]" />
-              <col className="w-[7%]" />
+              <col className="w-[9%]" />
               <col className="w-[10%]" />
-              <col className="w-[11%]" />
-              <col className="w-[7%]" />
-              <col className="w-[9%]" />
-              <col className="w-[11%]" />
-              <col className="w-[7%]" />
+              <col className="w-[14%]" />
               <col className="w-[16%]" />
-              <col className="w-[7%]" />
               <col className="w-[9%]" />
+              <col className="w-[11%]" />
+              <col className="w-[13%]" />
+              <col className="w-[8%]" />
+              <col className="w-[8%]" />
+              <col className="w-[10%]" />
             </colgroup>
             <thead>
               <tr className="bg-gray-50 text-left text-xs tracking-wide text-gray-500 uppercase">
@@ -267,7 +288,6 @@ function CuentasCorrientes({ orders, materials }: { orders: Order[]; materials: 
                 <th className="px-3 py-3">Total ($)</th>
                 <th className="px-3 py-3">Seña ($)</th>
                 <th className="px-3 py-3 text-right">Saldo</th>
-                <th className="px-3 py-3">Material / medida / min</th>
                 <th className="px-3 py-3">Formulario</th>
                 <th className="px-3 py-3"></th>
               </tr>
@@ -275,7 +295,7 @@ function CuentasCorrientes({ orders, materials }: { orders: Order[]; materials: 
             <tbody>
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-3 py-6 text-center text-sm text-gray-400">
+                  <td colSpan={10} className="px-3 py-6 text-center text-sm text-gray-400">
                     No hay pedidos cargados todavía.
                   </td>
                 </tr>
@@ -285,7 +305,7 @@ function CuentasCorrientes({ orders, materials }: { orders: Order[]; materials: 
                 // visualmente con el valor viejo aunque la base ya se
                 // actualizó (React no resetea defaultValue en un
                 // re-render normal, solo al montar).
-                orders.map((o) => <CuentaRow key={JSON.stringify(o)} order={o} materials={materials} />)
+                orders.map((o) => <CuentaRow key={JSON.stringify(o)} order={o} />)
               )}
             </tbody>
           </table>
@@ -302,7 +322,7 @@ function CuentasCorrientes({ orders, materials }: { orders: Order[]; materials: 
   );
 }
 
-function CuentaRow({ order, materials }: { order: Order; materials: Material[] }) {
+function CuentaRow({ order }: { order: Order }) {
   const formId = `order-${order.id}`;
   const balance = getBalance(order);
   return (
@@ -337,49 +357,15 @@ function CuentaRow({ order, materials }: { order: Order; materials: Material[] }
         </div>
       </td>
       <td className="px-3 py-2 text-right text-xs font-bold whitespace-nowrap text-gray-700">{formatPrice(balance)}</td>
-      <td className="px-2 py-2">
-        <select form={formId} name="material_id" defaultValue={order.material_id ?? ""} className={`${tinyInputClass} mb-1`}>
-          <option value="">Sin material</option>
-          {materials.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
-        <div className="grid grid-cols-3 gap-1">
-          <input
-            form={formId}
-            className={tinyInputClass}
-            name="width_mm"
-            type="number"
-            step="any"
-            defaultValue={order.width_mm ?? ""}
-            title="Ancho (mm)"
-            placeholder="Ancho"
-          />
-          <input
-            form={formId}
-            className={tinyInputClass}
-            name="length_mm"
-            type="number"
-            step="any"
-            defaultValue={order.length_mm ?? ""}
-            title="Largo (mm)"
-            placeholder="Largo"
-          />
-          <input
-            form={formId}
-            className={tinyInputClass}
-            name="mo_minutes"
-            type="number"
-            step="any"
-            defaultValue={order.mo_minutes ?? ""}
-            title="Minutos MO"
-            placeholder="Min"
-          />
-        </div>
-      </td>
       <td className="px-3 py-2">
+        {/* Material/medidas/minutos no tienen su propio control acá (se
+            sacó por espacio) — se cargan/editan solo desde "Cargar pedido"
+            en el Kanban. Estos hidden pasan el valor actual sin cambios,
+            así guardar desde acá no los borra. */}
+        <input form={formId} type="hidden" name="material_id" value={order.material_id ?? ""} />
+        <input form={formId} type="hidden" name="width_mm" value={order.width_mm ?? ""} />
+        <input form={formId} type="hidden" name="length_mm" value={order.length_mm ?? ""} />
+        <input form={formId} type="hidden" name="mo_minutes" value={order.mo_minutes ?? ""} />
         <select form={formId} name="form_paid" defaultValue={order.form_paid === null ? "" : String(order.form_paid)} className={inputClass}>
           <option value="">—</option>
           <option value="1">Sí</option>

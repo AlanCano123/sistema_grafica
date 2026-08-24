@@ -14,7 +14,7 @@ export default function DebtsDoughnutChart({ receivable, payable }: DebtsDoughnu
   return (
     <Doughnut
       data={{
-        labels: ["Te deben", "Vos debés"],
+        labels: ["Cobros pendientes", "Pagos pendientes"],
         datasets: [
           {
             data: [receivable, payable],
