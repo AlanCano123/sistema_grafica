@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
-import { WhatsAppIcon } from "./BrandIcons";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import CartButton from "./CartButton";
+import BrandLogo from "./BrandLogo";
 
 const NAV_LINKS = [
   { href: "/", label: "Inicio" },
@@ -87,14 +88,16 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
+          <CartButton />
+
           <a
             href={buildWhatsAppUrl()}
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden items-center gap-2 rounded-lg bg-brand-red px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-red-dark sm:inline-flex"
+            className="ml-2 hidden items-center gap-2 rounded-lg bg-brand-red px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-red-dark sm:inline-flex"
           >
-            <WhatsAppIcon className="h-4 w-4" />
+            <BrandLogo brand="whatsapp" size={16} className="h-4 w-4" />
             Pedir presupuesto
           </a>
 

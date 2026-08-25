@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { WhatsAppIcon, InstagramIcon, PhoneIcon, LocationIcon } from "./BrandIcons";
+import { PhoneIcon, LocationIcon } from "./BrandIcons";
+import BrandLogo from "./BrandLogo";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import BackToTop from "./BackToTop";
 
@@ -38,7 +39,7 @@ export default function Footer() {
               </a>
             </li>
             <li className="flex items-center gap-2.5">
-              <InstagramIcon className="h-4 w-4 shrink-0 text-brand-red" />
+              <BrandLogo brand="instagram" size={16} className="h-4 w-4 shrink-0" />
               <a
                 href="https://instagram.com/laser.kind"
                 target="_blank"
@@ -58,24 +59,24 @@ export default function Footer() {
         <div>
           <p className="mb-4 text-xs font-bold tracking-[0.2em] text-brand-red">LÁSER KIND</p>
           <p className="mb-5 text-sm text-neutral-400">Diseño · Grabado · Personalización</p>
-          <div className="flex gap-3">
+          <div className="flex gap-4">
             <a
               href="https://instagram.com/laser.kind"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-neutral-300 transition-colors hover:border-white/40 hover:text-white"
+              className="flex h-14 w-14 items-center justify-center rounded-full border border-white/15 text-neutral-300 transition-colors hover:border-white/40 hover:text-white"
             >
-              <InstagramIcon className="h-4 w-4" />
+              <BrandLogo brand="instagram" size={28} className="h-7 w-7" />
             </a>
             <a
               href={buildWhatsAppUrl()}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="WhatsApp"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-neutral-300 transition-colors hover:border-white/40 hover:text-white"
+              className="flex h-14 w-14 items-center justify-center rounded-full border border-white/15 text-neutral-300 transition-colors hover:border-white/40 hover:text-white"
             >
-              <WhatsAppIcon className="h-4 w-4" />
+              <BrandLogo brand="whatsapp" size={28} className="h-7 w-7" />
             </a>
           </div>
         </div>

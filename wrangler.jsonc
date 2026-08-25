@@ -8,8 +8,17 @@
   // otro de package.json) y no coincidían — por eso falló el deploy con
   // "Service binding ... was not found" (código 10143).
   "name": "sistema-grafica",
+  // Custom worker (no el ".open-next/worker.js" generado directo) — le
+  // agrega el scheduled() del cron del dólar. Reexporta el fetch handler
+  // real de OpenNext, ver custom-worker.ts.
+  "main": "./custom-worker.ts",
   "compatibility_date": "2026-08-20",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // 13:00 UTC = 10:00 hora Argentina (UTC-3, sin horario de verano acá).
+  // Actualiza el dólar oficial una vez al día — ver lib/dolar.ts.
+  "triggers": {
+    "crons": ["0 13 * * *"],
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS",

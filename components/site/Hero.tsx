@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ShieldCheck, Target, Heart } from "lucide-react";
-import { WhatsAppIcon } from "./BrandIcons";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import BrandLogo from "./BrandLogo";
 
 const TRUST_BADGES = [
   { icon: ShieldCheck, label: "Calidad", sub: "garantizada" },
@@ -34,7 +34,7 @@ export default function Hero() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg bg-brand-red px-6 py-3.5 font-semibold text-white transition-colors hover:bg-brand-red-dark"
             >
-              <WhatsAppIcon className="h-5 w-5" />
+              <BrandLogo brand="whatsapp" size={20} className="h-5 w-5" />
               Pedir presupuesto
             </a>
             <Link

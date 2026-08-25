@@ -1,6 +1,13 @@
 // Marcas exactas del diseño original (front-end/index.html) — se
 // preservan tal cual, no se reemplazan por lucide-react (que no tiene
 // logos de marca).
+//
+// WhatsAppIcon/InstagramIcon ya NO se usan directo en el sitio — quedan
+// acá solo como FALLBACK de BrandLogo.tsx (se muestran si
+// public/images/whatsapp-logo.png / instagram-logo.png todavía no
+// existen o fallan al cargar). En cuanto Fernando suba esos 2 archivos,
+// BrandLogo pasa a mostrar el logo real solo, esto deja de usarse pero
+// se deja como red de seguridad.
 
 export function WhatsAppIcon({ className }: { className?: string }) {
   return (

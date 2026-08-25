@@ -1,4 +1,4 @@
-import { Sparkles, Printer, Shirt, PenTool } from "lucide-react";
+import { Sparkles, Printer, Shirt, PenTool, Scissors, Building2, Gift, Briefcase, Trophy, Signpost } from "lucide-react";
 
 const SERVICES = [
   {
@@ -21,6 +21,36 @@ const SERVICES = [
     title: "Diseño Personalizado",
     description: "Diseñamos tu idea para convertirla en un producto único.",
   },
+  {
+    icon: Scissors,
+    title: "Cortes de Polifan",
+    description: "Corte de precisión en polifan para letras y piezas corpóreas.",
+  },
+  {
+    icon: Building2,
+    title: "Cartelería Corpórea",
+    description: "Carteles con volumen para locales, fachadas y marcas.",
+  },
+  {
+    icon: Gift,
+    title: "Souvenirs",
+    description: "Recuerdos personalizados para eventos y celebraciones.",
+  },
+  {
+    icon: Briefcase,
+    title: "Regalos Empresariales",
+    description: "Productos personalizados con la marca de tu empresa.",
+  },
+  {
+    icon: Trophy,
+    title: "Trofeos",
+    description: "Trofeos y reconocimientos personalizados a medida.",
+  },
+  {
+    icon: Signpost,
+    title: "Cartelerías",
+    description: "Señalética y cartelería para interior y exterior.",
+  },
 ];
 
 export default function Services() {
@@ -33,9 +63,12 @@ export default function Services() {
             ¿Qué hacemos?
             <span className="mx-auto mt-4 block h-1 w-14 rounded-full bg-brand-red" />
           </h2>
+          <p className="mt-5 text-xl font-semibold text-neutral-300 italic md:text-2xl">
+            &quot;Que el límite sea tu imaginación&quot;
+          </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {SERVICES.map(({ icon: Icon, title, description }, i) => (
             <div
               key={title}

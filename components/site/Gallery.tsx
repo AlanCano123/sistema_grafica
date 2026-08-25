@@ -4,8 +4,14 @@ import { useState } from "react";
 import Image from "next/image";
 
 const VISIBLE_COUNT = 4;
-const TOTAL = 11;
-const IMAGES = Array.from({ length: TOTAL }, (_, i) => `/images/muestra-trabajo${i + 1}.jpg`);
+// Lista explícita, no un rango numérico — public/images/ tiene huecos
+// (nunca existieron muestra-trabajo3.jpg ni 8.jpg) y un rango fijo los
+// pedía igual, rompiendo esas 2 fotos. Cuando Fernando agregue fotos
+// nuevas a la carpeta hay que sumarlas acá a mano (no hay lectura
+// dinámica del directorio — no existe ese patrón en el resto del sitio,
+// y hacerlo en runtime no es seguro en Cloudflare Workers).
+const NUMBERS = [1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+const IMAGES = NUMBERS.map((n) => `/images/muestra-trabajo${n}.jpg`);
 
 export default function Gallery() {
   const [showAll, setShowAll] = useState(false);

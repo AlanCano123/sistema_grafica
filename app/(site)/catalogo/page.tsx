@@ -1,6 +1,7 @@
 import { getCombinedProducts } from "@/lib/catalog";
+import { getDolarOficialVenta } from "@/lib/dolar";
 import { filterByCategory, getUniqueCategories, hasPlaceholderImage } from "@/lib/product-helpers";
-import ProductCard from "@/components/ProductCard";
+import CatalogGrid from "@/components/CatalogGrid";
 import Pagination from "@/components/Pagination";
 import CategoryFilter from "@/components/CategoryFilter";
 
@@ -15,7 +16,8 @@ export default async function CatalogoPage({ searchParams }: PageProps) {
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
   const category = params.category ?? null;
 
-  const allProducts = (await getCombinedProducts()).filter((p) => !hasPlaceholderImage(p));
+  const [allProductsRaw, dolarVenta] = await Promise.all([getCombinedProducts(), getDolarOficialVenta()]);
+  const allProducts = allProductsRaw.filter((p) => !hasPlaceholderImage(p));
   const categories = getUniqueCategories(allProducts);
   const filtered = filterByCategory(allProducts, category);
 
@@ -39,11 +41,7 @@ export default async function CatalogoPage({ searchParams }: PageProps) {
             {products.length === 0 ? (
               <p className="text-neutral-500">No se encontraron productos.</p>
             ) : (
-              <div className="grid w-full grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
-                {products.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
+              <CatalogGrid products={products} dolarVenta={dolarVenta} />
             )}
 
             <Pagination currentPage={currentPage} totalPages={totalPages} category={category} />

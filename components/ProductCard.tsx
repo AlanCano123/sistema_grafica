@@ -1,15 +1,18 @@
 import Image from "next/image";
 import { Product } from "@/lib/types";
-import { getMainImage, getTotalStock } from "@/lib/product-helpers";
+import { formatPrice, getEstimatedPriceRange, getMainImage, getTotalStock } from "@/lib/product-helpers";
 
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({ product, dolarVenta }: { product: Product; dolarVenta: number | null }) {
   const image = getMainImage(product);
   const stock = getTotalStock(product);
   const sinStock = stock <= 0;
+  const priceRange = getEstimatedPriceRange(product, dolarVenta);
 
   return (
     <div className="flex flex-col items-start">
-      <div className="relative mb-2.5 aspect-square w-full overflow-hidden rounded-[13px] border border-white/10 bg-neutral-900 lg:mb-4 lg:rounded-[20px]">
+      {/* Fondo blanco, igual criterio que /panel/proveedores — las fotos
+          de CDO/Maya vienen pensadas para fondo claro, no oscuro. */}
+      <div className="relative mb-2.5 aspect-square w-full overflow-hidden rounded-[13px] border border-white/10 bg-white lg:mb-4 lg:rounded-[20px]">
         <Image
           src={image}
           alt={product.name}
@@ -37,6 +40,15 @@ export default function ProductCard({ product }: { product: Product }) {
       {product.description && (
         <p className="mt-1 line-clamp-3 text-xs text-neutral-400">{product.description}</p>
       )}
+
+      <span className="mt-2 text-sm font-bold text-brand-red">
+        {priceRange
+          ? priceRange.min === priceRange.max
+            ? formatPrice(priceRange.min)
+            : `${formatPrice(priceRange.min)} – ${formatPrice(priceRange.max)}`
+          : "Precio a consultar"}
+      </span>
+      {priceRange && <span className="text-[10px] text-neutral-500">Precio estimado, sujeto a modificación</span>}
 
       <span className={`mt-2 text-xs font-medium ${sinStock ? "text-brand-red" : "text-neutral-400"}`}>
         {sinStock ? "Agotado" : `Stock: ${stock}`}

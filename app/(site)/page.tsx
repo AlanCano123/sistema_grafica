@@ -1,5 +1,6 @@
 import Hero from "@/components/site/Hero";
 import Services from "@/components/site/Services";
+import GrabadosPricing from "@/components/site/GrabadosPricing";
 import Gallery from "@/components/site/Gallery";
 import PriceCalculator from "@/components/PriceCalculator";
 import { computeMoRates } from "@/lib/materials";
@@ -18,6 +19,7 @@ export default async function HomePage() {
     <main>
       <Hero />
       <Services />
+      <GrabadosPricing />
       <Gallery />
       <PriceCalculator
         materials={materials}

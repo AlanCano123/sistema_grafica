@@ -77,3 +77,40 @@ export function formatPrice(value: number): string {
     maximumFractionDigits: 2,
   }).format(value);
 }
+
+// --- Precio estimado en pesos ---------------------------------------------
+// Ni CDO ni Maya traen moneda en su API. Criterio de Fernando: un precio
+// crudo con MENOS de 3 cifras (< 100) es USD, 3 cifras o más (>= 100) ya
+// está en ARS. Confirmado: CDO siempre da USD (por eso siempre < 100),
+// Maya es mixto sin patrón — este chequeo por cifras separa los dos casos
+// producto a producto. Todo precio mostrado —convertido de USD o ya en
+// ARS— lleva +100% (es precio de proveedor mayorista en los dos casos).
+// Son precios ESTIMADOS, se muestran siempre con esa aclaración en la UI.
+
+export function looksLikeUsd(rawValue: number): boolean {
+  return rawValue < 100;
+}
+
+/**
+ * Precio final estimado en pesos para un valor crudo de proveedor.
+ * `null` si el valor parece USD y no hay cotización de dólar disponible
+ * (las dos fuentes de lib/dolar.ts fallaron) — nunca se inventa un número.
+ */
+export function estimateArsPrice(rawValue: number, dolarVenta: number | null): number | null {
+  if (looksLikeUsd(rawValue)) {
+    return dolarVenta == null ? null : rawValue * dolarVenta * 2;
+  }
+  return rawValue * 2;
+}
+
+/** Rango de precio ESTIMADO (en pesos) entre todos los variantes. `null` si ninguno se pudo estimar. */
+export function getEstimatedPriceRange(product: Product, dolarVenta: number | null): { min: number; max: number } | null {
+  const prices = product.variants
+    .map((v) => parseFloat(v.net_price))
+    .filter((p) => !isNaN(p))
+    .map((raw) => estimateArsPrice(raw, dolarVenta))
+    .filter((p): p is number => p != null);
+
+  if (prices.length === 0) return null;
+  return { min: Math.min(...prices), max: Math.max(...prices) };
+}
