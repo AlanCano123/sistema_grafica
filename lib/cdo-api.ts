@@ -2,7 +2,11 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getCache, setCache } from "./catalog-cache";
 import { Product, ProductsResponse } from "./types";
 
-const CACHE_KEY = "cdo-products";
+// "-v2" a propósito: la cache vieja ("cdo-products") tiene productos sin
+// el campo `provider` (se agregó después) — en vez de borrar la key a mano
+// en el dashboard de Cloudflare, se cambia el nombre para que el próximo
+// pedido lea una key nueva y vacía, forzando un fetch fresco ya con el tag.
+const CACHE_KEY = "cdo-products-v2";
 
 interface GetProductsParams {
   page?: number;
