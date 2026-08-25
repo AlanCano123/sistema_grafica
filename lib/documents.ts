@@ -1,6 +1,7 @@
 // Presupuesto/Remito en PDF — datos fijos del negocio + tipos del
-// formulario. No se persiste nada en D1 a propósito (confirmado con
-// Fernando): se completa el formulario y se descarga, sin historial.
+// formulario. El Presupuesto se guarda en D1 (ver lib/quotes.ts) para
+// poder convertirlo a remito si el cliente acepta; el Remito suelto sigue
+// efímero (se completa y se descarga, sin historial).
 
 export const BUSINESS_INFO = {
   razonSocial: "Laser Kind",

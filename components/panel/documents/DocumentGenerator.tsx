@@ -1,29 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { pdf, type DocumentProps } from "@react-pdf/renderer";
 import { FileDown, Plus, Trash2 } from "lucide-react";
-import { EMPTY_CLIENT, EMPTY_ITEM, type ClientInfo, type DocumentItem } from "@/lib/documents";
-import { PresupuestoDocument, RemitoDocument } from "./DocumentTemplates";
+import { EMPTY_CLIENT, EMPTY_ITEM, itemsTotal, type ClientInfo, type DocumentItem } from "@/lib/documents";
+import { downloadPdf } from "@/lib/pdf-download";
+import { PresupuestoDocument } from "./DocumentTemplates";
+import { createQuoteAction } from "@/app/panel/cotizador/actions";
 
 const inputClass =
   "w-full rounded border border-gray-200 px-2 py-1.5 text-sm text-gray-800 focus:border-[#4e73df] focus:outline-none";
 
-async function downloadPdf(element: React.ReactElement<DocumentProps>, filename: string) {
-  const blob = await pdf(element).toBlob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 export default function DocumentGenerator() {
   const [client, setClient] = useState<ClientInfo>(EMPTY_CLIENT);
   const [items, setItems] = useState<DocumentItem[]>([{ ...EMPTY_ITEM }]);
-  const [number, setNumber] = useState("");
-  const [generating, setGenerating] = useState<"remito" | "presupuesto" | null>(null);
+  const [generating, setGenerating] = useState(false);
 
   function updateClient<K extends keyof ClientInfo>(key: K, value: ClientInfo[K]) {
     setClient((c) => ({ ...c, [key]: value }));
@@ -41,33 +31,33 @@ export default function DocumentGenerator() {
     setItems((rows) => (rows.length > 1 ? rows.filter((_, i) => i !== index) : rows));
   }
 
-  async function handleDownload(type: "remito" | "presupuesto") {
-    setGenerating(type);
+  async function handleDownload() {
+    setGenerating(true);
     try {
       const cleanItems = items.filter((i) => i.description.trim() !== "");
-      if (type === "remito") {
-        await downloadPdf(<RemitoDocument client={client} items={cleanItems} number={number} />, `remito-${number || "sin-numero"}.pdf`);
-      } else {
-        await downloadPdf(<PresupuestoDocument client={client} items={cleanItems} number={number} />, `presupuesto-${number || "sin-numero"}.pdf`);
-      }
+      // El presupuesto se guarda solo (para poder convertirlo a remito
+      // después si el cliente acepta, ver /panel/presupuestos) — el número
+      // real del documento es PRES-{id}, derivado del id guardado.
+      const id = await createQuoteAction({ client, items: cleanItems, total: itemsTotal(cleanItems) });
+      const quoteNum = `PRES-${id}`;
+      await downloadPdf(<PresupuestoDocument client={client} items={cleanItems} number={quoteNum} />, `presupuesto-${quoteNum}.pdf`);
     } finally {
-      setGenerating(null);
+      setGenerating(false);
     }
   }
 
   return (
     <div className="rounded border border-gray-100 bg-white p-5 shadow-sm">
-      <h2 className="mb-1 text-sm font-bold text-[#4e73df]">Presupuesto / Remito</h2>
+      <h2 className="mb-1 text-sm font-bold text-[#4e73df]">Presupuesto</h2>
       <p className="mb-4 text-xs text-gray-400">
-        Completá los datos del cliente y los artículos, y descargá el PDF — no queda guardado en ningún lado, es solo
-        para generar el documento.
+        Completá los datos del cliente y los artículos, y descargá el PDF — queda guardado en{" "}
+        <a href="/panel/presupuestos" className="text-[#4e73df] hover:underline">
+          Presupuestos
+        </a>{" "}
+        para convertirlo a remito cuando el cliente acepte (mismo cliente y artículos, sin cargar nada de nuevo).
       </p>
 
       <div className="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <label className="text-xs text-gray-500">
-          Número (opcional)
-          <input className={`mt-1 ${inputClass}`} value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Ej: 0001" />
-        </label>
         <label className="text-xs text-gray-500">
           Nombre del cliente
           <input className={`mt-1 ${inputClass}`} value={client.nombre} onChange={(e) => updateClient("nombre", e.target.value)} />
@@ -160,26 +150,15 @@ export default function DocumentGenerator() {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          disabled={generating !== null}
-          onClick={() => handleDownload("remito")}
-          className="flex items-center gap-2 rounded bg-[#4e73df] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3d5cc4] disabled:opacity-60"
-        >
-          <FileDown size={16} />
-          {generating === "remito" ? "Generando…" : "Descargar Remito (PDF)"}
-        </button>
-        <button
-          type="button"
-          disabled={generating !== null}
-          onClick={() => handleDownload("presupuesto")}
-          className="flex items-center gap-2 rounded bg-[#1cc88a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#17a674] disabled:opacity-60"
-        >
-          <FileDown size={16} />
-          {generating === "presupuesto" ? "Generando…" : "Descargar Presupuesto (PDF)"}
-        </button>
-      </div>
+      <button
+        type="button"
+        disabled={generating}
+        onClick={handleDownload}
+        className="flex items-center gap-2 rounded bg-[#1cc88a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#17a674] disabled:opacity-60"
+      >
+        <FileDown size={16} />
+        {generating ? "Generando…" : "Descargar Presupuesto (PDF)"}
+      </button>
     </div>
   );
 }

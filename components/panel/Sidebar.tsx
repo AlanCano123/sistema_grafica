@@ -13,6 +13,7 @@ import {
   Calculator,
   Settings,
   Truck,
+  FileText,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { href: "/panel/materiales", label: "Materiales", icon: Layers },
   { href: "/panel/proveedores", label: "Proveedores", icon: Truck },
   { href: "/panel/cotizador", label: "Cotizador", icon: Calculator },
+  { href: "/panel/presupuestos", label: "Presupuestos", icon: FileText },
   { href: "/panel/configuracion", label: "Configuración", icon: Settings },
   { href: "/panel/finanzas", label: "Finanzas", icon: PiggyBank },
   { href: "/panel/deudas", label: "Movimientos", icon: Wallet },
