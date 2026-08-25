@@ -1,9 +1,19 @@
+import Link from "next/link";
 import { getDebts, getDebtBalance, type Debt } from "@/lib/business";
 import { formatPrice } from "@/lib/product-helpers";
 import { createDebtAction, deleteDebtAction, updateDebtAction } from "./actions";
 
 // D1 solo existe en tiempo real del Worker.
 export const dynamic = "force-dynamic";
+
+// Por default solo se traen movimientos de los últimos 90 días + los que
+// sigan pendientes sin importar la fecha (ver getDebts en lib/business.ts).
+// "Ver historial completo" saca el filtro.
+const HISTORY_DAYS = 90;
+
+function sinceDate(): string {
+  return new Date(Date.now() - HISTORY_DAYS * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
 
 const inputClass =
   "w-full rounded border border-gray-200 px-2 py-1.5 text-sm text-gray-800 focus:border-[#4e73df] focus:outline-none";
@@ -135,14 +145,28 @@ function DebtTable({ title, debts, accent }: { title: string; debts: Debt[]; acc
   );
 }
 
-export default async function DeudasPage() {
-  const debts = await getDebts();
+interface PageProps {
+  searchParams: Promise<{ historial?: string }>;
+}
+
+export default async function DeudasPage({ searchParams }: PageProps) {
+  const { historial } = await searchParams;
+  const verTodo = historial === "todo";
+  const debts = await getDebts(verTodo ? undefined : sinceDate());
   const receivables = debts.filter((d) => d.direction === "receivable");
   const payables = debts.filter((d) => d.direction === "payable");
 
   return (
     <>
-      <h1 className="mb-6 text-xl font-bold text-gray-800">Movimientos</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-bold text-gray-800">Movimientos</h1>
+        <Link
+          href={verTodo ? "/panel/deudas" : "/panel/deudas?historial=todo"}
+          className="text-xs font-semibold text-gray-500 hover:underline"
+        >
+          {verTodo ? "Ver solo recientes" : `Ver historial completo (más de ${HISTORY_DAYS} días)`}
+        </Link>
+      </div>
 
       <div className="mb-6 rounded border border-gray-100 bg-white p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-bold text-[#4e73df]">Cargar movimiento</h2>

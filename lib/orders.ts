@@ -56,9 +56,28 @@ export function getOrderCost(
   return { cost, margin, marginPct };
 }
 
-export async function getOrders(): Promise<Order[]> {
+/** Sin `sinceDate`: trae todo (comportamiento de siempre). Con `sinceDate`,
+ * trae los recientes MÁS los que igual hace falta ver siempre sin importar
+ * la fecha: no terminados (trabajo en curso) o con saldo pendiente (plata
+ * que falta cobrar) — así el filtro nunca esconde algo que todavía importa,
+ * solo pedidos viejos, cerrados y cobrados del todo. Pensado para cuando
+ * `orders` crezca mucho (ver análisis de lecturas de D1) — no reduce nada
+ * hoy, es la base para no tener que traer la tabla entera siempre. */
+export async function getOrders(sinceDate?: string): Promise<Order[]> {
   try {
     const { env } = await getCloudflareContext({ async: true });
+    if (sinceDate) {
+      const { results } = await env.DB.prepare(
+        `SELECT * FROM orders
+         WHERE created_at >= ?
+            OR status != 'terminado'
+            OR (total_amount - has_deposit * deposit_amount) > 0
+         ORDER BY created_at DESC`
+      )
+        .bind(sinceDate)
+        .all<Order>();
+      return results;
+    }
     const { results } = await env.DB.prepare("SELECT * FROM orders ORDER BY created_at DESC").all<Order>();
     return results;
   } catch (err) {

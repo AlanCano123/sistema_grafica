@@ -47,11 +47,25 @@ export const SERVICE_TYPES: { value: string; label: string }[] = [
   { value: "diseno_personalizado", label: "Diseño Personalizado" },
 ];
 
-export async function getDebts(): Promise<Debt[]> {
+/** Sin `sinceDate`: trae todo. Con `sinceDate`, trae las recientes MÁS las
+ * pendientes (sin importar la fecha — plata que todavía falta cobrar/pagar
+ * nunca se esconde) — solo deja afuera deudas viejas ya pagadas. Mismo
+ * criterio que `getOrders`, pensado para cuando la tabla crezca mucho. */
+export async function getDebts(sinceDate?: string): Promise<Debt[]> {
   try {
     const { env } = await getCloudflareContext({ async: true });
     // "due_date IS NULL" da 0/1: los que tienen fecha (0) van primero,
     // ordenados ascendente; los NULL quedan al final.
+    if (sinceDate) {
+      const { results } = await env.DB.prepare(
+        `SELECT * FROM debts
+         WHERE created_at >= ? OR status != 'paid'
+         ORDER BY due_date IS NULL, due_date ASC`
+      )
+        .bind(sinceDate)
+        .all<Debt>();
+      return results;
+    }
     const { results } = await env.DB.prepare(
       "SELECT * FROM debts ORDER BY due_date IS NULL, due_date ASC"
     ).all<Debt>();
@@ -95,9 +109,19 @@ export async function deleteDebt(id: number): Promise<void> {
   await env.DB.prepare("DELETE FROM debts WHERE id = ?").bind(id).run();
 }
 
-export async function getSales(): Promise<Sale[]> {
+/** Sin `sinceDate`: trae todo. Con `sinceDate`, solo las ventas desde esa
+ * fecha — a diferencia de pedidos/deudas, una venta ya cerrada no tiene
+ * "estado pendiente" que deba seguir mostrándose, así que el filtro es
+ * directo por fecha. Pensado para cuando la tabla crezca mucho. */
+export async function getSales(sinceDate?: string): Promise<Sale[]> {
   try {
     const { env } = await getCloudflareContext({ async: true });
+    if (sinceDate) {
+      const { results } = await env.DB.prepare("SELECT * FROM sales WHERE sale_date >= ? ORDER BY sale_date DESC")
+        .bind(sinceDate)
+        .all<Sale>();
+      return results;
+    }
     const { results } = await env.DB.prepare("SELECT * FROM sales ORDER BY sale_date DESC").all<Sale>();
     return results;
   } catch (err) {

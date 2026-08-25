@@ -28,34 +28,54 @@ const COLUMNS: { status: OrderStatus; title: string; accent: string }[] = [
   { status: "terminado", title: "Terminados", accent: "#1cc88a" },
 ];
 
+// Por default solo se traen pedidos de los últimos 90 días (+ los que
+// sigan activos o con saldo, sin importar la fecha — ver getOrders en
+// lib/orders.ts). "Ver historial completo" saca el filtro. Sin esto, en
+// unos años la tabla `orders` iba a leerse entera en cada vista de página,
+// acercándose de más al límite gratis de lecturas de D1.
+const HISTORY_DAYS = 90;
+
+function sinceDate(): string {
+  return new Date(Date.now() - HISTORY_DAYS * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 interface PageProps {
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<{ view?: string; historial?: string }>;
 }
 
 export default async function PedidosPage({ searchParams }: PageProps) {
-  const { view } = await searchParams;
-  const [orders, materials] = await Promise.all([getOrders(), getMaterials()]);
+  const { view, historial } = await searchParams;
+  const verTodo = historial === "todo";
+  const [orders, materials] = await Promise.all([getOrders(verTodo ? undefined : sinceDate()), getMaterials()]);
 
   return view === "cuentas" ? (
-    <CuentasCorrientes orders={orders} />
+    <CuentasCorrientes orders={orders} verTodo={verTodo} />
   ) : (
-    <Kanban orders={orders} materials={materials} />
+    <Kanban orders={orders} materials={materials} verTodo={verTodo} />
   );
 }
 
 // --- Vista Kanban --------------------------------------------------------
 
-function Kanban({ orders, materials }: { orders: Order[]; materials: Material[] }) {
+function Kanban({ orders, materials, verTodo }: { orders: Order[]; materials: Material[]; verTodo: boolean }) {
   const onTime = getOnTimeStats(orders);
   const enCola = getOrdersByStatus(orders, "pendiente").length + getOrdersByStatus(orders, "produccion").length;
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-gray-800">Pedidos</h1>
-        <Link href="/panel/pedidos?view=cuentas" className="text-sm font-semibold text-[#4e73df] hover:underline">
-          Ver cuentas corrientes →
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href={verTodo ? "/panel/pedidos" : "/panel/pedidos?historial=todo"}
+            className="text-xs font-semibold text-gray-500 hover:underline"
+          >
+            {verTodo ? "Ver solo recientes" : `Ver historial completo (más de ${HISTORY_DAYS} días)`}
+          </Link>
+          <Link href="/panel/pedidos?view=cuentas" className="text-sm font-semibold text-[#4e73df] hover:underline">
+            Ver cuentas corrientes →
+          </Link>
+        </div>
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -241,7 +261,7 @@ function KanbanCard({ order }: { order: Order }) {
 
 // --- Vista Cuentas corrientes ---------------------------------------------
 
-function CuentasCorrientes({ orders }: { orders: Order[] }) {
+function CuentasCorrientes({ orders, verTodo }: { orders: Order[]; verTodo: boolean }) {
   const totalPendiente = orders.reduce((sum, o) => {
     const balance = getBalance(o);
     return balance > 0 ? sum + balance : sum;
@@ -249,11 +269,19 @@ function CuentasCorrientes({ orders }: { orders: Order[] }) {
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-gray-800">Cuentas corrientes</h1>
-        <Link href="/panel/pedidos" className="text-sm font-semibold text-[#4e73df] hover:underline">
-          ← Ver tablero de pedidos
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href={verTodo ? "/panel/pedidos?view=cuentas" : "/panel/pedidos?view=cuentas&historial=todo"}
+            className="text-xs font-semibold text-gray-500 hover:underline"
+          >
+            {verTodo ? "Ver solo recientes" : `Ver historial completo (más de ${HISTORY_DAYS} días)`}
+          </Link>
+          <Link href="/panel/pedidos" className="text-sm font-semibold text-[#4e73df] hover:underline">
+            ← Ver tablero de pedidos
+          </Link>
+        </div>
       </div>
       <p className="mb-6 max-w-2xl text-sm text-gray-500">
         Quién debe qué sobre sus pedidos — no confundir con Movimientos (esa es con proveedores/terceros).

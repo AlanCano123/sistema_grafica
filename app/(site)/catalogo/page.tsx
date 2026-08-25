@@ -1,5 +1,5 @@
 import { getCombinedProducts } from "@/lib/catalog";
-import { filterByCategory, getUniqueCategories } from "@/lib/product-helpers";
+import { filterByCategory, getUniqueCategories, hasPlaceholderImage } from "@/lib/product-helpers";
 import ProductCard from "@/components/ProductCard";
 import Pagination from "@/components/Pagination";
 import CategoryFilter from "@/components/CategoryFilter";
@@ -15,7 +15,7 @@ export default async function CatalogoPage({ searchParams }: PageProps) {
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
   const category = params.category ?? null;
 
-  const allProducts = await getCombinedProducts();
+  const allProducts = (await getCombinedProducts()).filter((p) => !hasPlaceholderImage(p));
   const categories = getUniqueCategories(allProducts);
   const filtered = filterByCategory(allProducts, category);
 

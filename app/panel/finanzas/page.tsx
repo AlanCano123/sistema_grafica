@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getSales, SERVICE_TYPES } from "@/lib/business";
 import { getBalance, getOrderCost, getOrders, type Order } from "@/lib/orders";
 import { getMaterials, getOperatingCosts, getPricingSettings } from "@/lib/materials-db";
@@ -12,10 +13,26 @@ export const dynamic = "force-dynamic";
 
 const PALETTE = ["#4e73df", "#1cc88a", "#f6c23e", "#e74a3b", "#36b9cc", "#858796", "#5a5c69", "#fd7e14"];
 
-export default async function FinanzasPage() {
+// Por default, ventas/pedidos de los últimos 90 días (+ pedidos activos o
+// con saldo, sin importar la fecha — ver getOrders). "Saldos pendientes de
+// pago" nunca se ve afectado por esto (ya filtra por saldo > 0, que
+// getOrders siempre incluye). "Ver historial completo" saca el filtro.
+const HISTORY_DAYS = 90;
+
+function sinceDate(): string {
+  return new Date(Date.now() - HISTORY_DAYS * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+interface PageProps {
+  searchParams: Promise<{ historial?: string }>;
+}
+
+export default async function FinanzasPage({ searchParams }: PageProps) {
+  const { historial } = await searchParams;
+  const verTodo = historial === "todo";
   const [sales, orders, materials, settings, costs] = await Promise.all([
-    getSales(),
-    getOrders(),
+    getSales(verTodo ? undefined : sinceDate()),
+    getOrders(verTodo ? undefined : sinceDate()),
     getMaterials(),
     getPricingSettings(),
     getOperatingCosts(),
@@ -79,13 +96,27 @@ export default async function FinanzasPage() {
 
   return (
     <>
-      <h1 className="mb-6 text-xl font-bold text-gray-800">Finanzas</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-bold text-gray-800">Finanzas</h1>
+        <Link
+          href={verTodo ? "/panel/finanzas" : "/panel/finanzas?historial=todo"}
+          className="text-xs font-semibold text-gray-500 hover:underline"
+        >
+          {verTodo ? "Ver solo recientes" : `Ver historial completo (más de ${HISTORY_DAYS} días)`}
+        </Link>
+      </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Ventas del día" value={formatPrice(salesToday)} accent="blue" icon={DollarSign} />
         <StatCard label="Ventas de la semana" value={formatPrice(salesWeek)} accent="blue" icon={DollarSign} sublabel="Últimos 7 días" />
         <StatCard label="Ventas del mes" value={formatPrice(salesMonth)} accent="blue" icon={DollarSign} />
-        <StatCard label="Ticket promedio" value={formatPrice(avgTicket)} accent="yellow" icon={Receipt} sublabel={`${sales.length} ventas en total`} />
+        <StatCard
+          label="Ticket promedio"
+          value={formatPrice(avgTicket)}
+          accent="yellow"
+          icon={Receipt}
+          sublabel={`${sales.length} ventas ${verTodo ? "en total" : `(últimos ${HISTORY_DAYS} días)`}`}
+        />
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">

@@ -12,6 +12,20 @@ export function getMainImage(product: Product): string {
   );
 }
 
+// Maya sirve este asset fijo de su sitio (ruta de UI/tema, no de
+// /uploads/pictures/... que es donde van las fotos reales) cuando un
+// producto no tiene foto propia — es su "imagen temporalmente no
+// disponible" con su logo, no una foto real. Confirmado contra datos
+// reales del catálogo (se repite igual en decenas de productos distintos).
+const MAYA_PLACEHOLDER_PREFIX = "https://mayapublicidad.com/images/ui/image/mp-";
+
+/** True si la imagen principal del producto es el "sin imagen" de Maya (no
+ * una foto real) — para sacarlo del catálogo público, no de la vista
+ * interna de Proveedores (esa sí necesita ver el feed crudo tal cual). */
+export function hasPlaceholderImage(product: Product): boolean {
+  return getMainImage(product).startsWith(MAYA_PLACEHOLDER_PREFIX);
+}
+
 /** Rango de precio neto entre todos los variantes (suele variar por color) */
 export function getPriceRange(product: Product): { min: number; max: number } {
   const prices = product.variants.map((v) => parseFloat(v.net_price)).filter((p) => !isNaN(p));

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getSales, SERVICE_TYPES, type Sale } from "@/lib/business";
 import { getOrders, type Order } from "@/lib/orders";
 import { formatPrice } from "@/lib/product-helpers";
@@ -5,6 +6,15 @@ import { createSaleAction, deleteSaleAction, updateSaleAction } from "./actions"
 
 // D1 solo existe en tiempo real del Worker.
 export const dynamic = "force-dynamic";
+
+// Por default solo se traen ventas de los últimos 90 días. "Ver historial
+// completo" saca el filtro — pensado para cuando la tabla crezca mucho
+// (ver análisis de lecturas de D1).
+const HISTORY_DAYS = 90;
+
+function sinceDate(): string {
+  return new Date(Date.now() - HISTORY_DAYS * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
 
 const inputClass =
   "w-full rounded border border-gray-200 px-2 py-1.5 text-sm text-gray-800 focus:border-[#4e73df] focus:outline-none";
@@ -142,17 +152,34 @@ function NewSaleRow({ orders }: { orders: Order[] }) {
   );
 }
 
-export default async function VentasPage() {
-  const [sales, orders] = await Promise.all([getSales(), getOrders()]);
+interface PageProps {
+  searchParams: Promise<{ historial?: string }>;
+}
+
+export default async function VentasPage({ searchParams }: PageProps) {
+  const { historial } = await searchParams;
+  const verTodo = historial === "todo";
+  // El desplegable de "pedido vinculado" siempre trae todos los pedidos
+  // (no filtrado) — no tendría sentido esconder un pedido viejo de esa
+  // lista solo porque la vista de ventas está mostrando lo reciente.
+  const [sales, orders] = await Promise.all([getSales(verTodo ? undefined : sinceDate()), getOrders()]);
   const total = sales.reduce((sum, s) => sum + s.amount, 0);
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-gray-800">Ventas</h1>
-        <span className="text-sm text-gray-500">
-          Total: <span className="font-bold text-[#4e73df]">{formatPrice(total)}</span>
-        </span>
+        <div className="flex items-center gap-4">
+          <Link
+            href={verTodo ? "/panel/ventas" : "/panel/ventas?historial=todo"}
+            className="text-xs font-semibold text-gray-500 hover:underline"
+          >
+            {verTodo ? "Ver solo recientes" : `Ver historial completo (más de ${HISTORY_DAYS} días)`}
+          </Link>
+          <span className="text-sm text-gray-500">
+            {verTodo ? "Total" : "Total (recientes)"}: <span className="font-bold text-[#4e73df]">{formatPrice(total)}</span>
+          </span>
+        </div>
       </div>
       <p className="mb-6 max-w-2xl text-sm text-gray-500">
         Un pedido que llega a Terminado con saldo $0 genera la venta acá solo — no hace falta cargarla de nuevo a
