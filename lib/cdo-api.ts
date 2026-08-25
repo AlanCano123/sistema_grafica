@@ -80,7 +80,10 @@ async function fetchAllProductsFromApi(): Promise<Product[]> {
     )
   );
 
-  return [...first.products, ...rest.flatMap((r) => r.products)];
+  // La API no manda "provider" — se etiqueta acá (igual que Maya en su
+  // propio adaptador) para poder distinguir el origen en /panel/proveedores.
+  const all = [...first.products, ...rest.flatMap((r) => r.products)];
+  return all.map((p) => ({ ...p, provider: "cdo" as const }));
 }
 
 /**

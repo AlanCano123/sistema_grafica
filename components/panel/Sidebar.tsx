@@ -12,12 +12,14 @@ import {
   PiggyBank,
   Calculator,
   Settings,
+  Truck,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/panel", label: "Dashboard", icon: LayoutDashboard },
   { href: "/panel/pedidos", label: "Pedidos", icon: ClipboardList },
   { href: "/panel/materiales", label: "Materiales", icon: Layers },
+  { href: "/panel/proveedores", label: "Proveedores", icon: Truck },
   { href: "/panel/cotizador", label: "Cotizador", icon: Calculator },
   { href: "/panel/configuracion", label: "Configuración", icon: Settings },
   { href: "/panel/finanzas", label: "Finanzas", icon: PiggyBank },

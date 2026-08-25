@@ -33,8 +33,8 @@ export default function Footer() {
           <ul className="space-y-3 text-sm text-neutral-400">
             <li className="flex items-center gap-2.5">
               <PhoneIcon className="h-4 w-4 shrink-0 text-brand-red" />
-              <a href="tel:+542966215330" className="transition-colors hover:text-white">
-                2966 21-5330
+              <a href="tel:+542966226605" className="transition-colors hover:text-white">
+                2966 22-6605
               </a>
             </li>
             <li className="flex items-center gap-2.5">
@@ -50,7 +50,7 @@ export default function Footer() {
             </li>
             <li className="flex items-start gap-2.5">
               <LocationIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-red" />
-              <span>Bernardino Rivadavia 162, Río Gallegos, Santa Cruz</span>
+              <span>Zapiola 231, Río Gallegos, Santa Cruz</span>
             </li>
           </ul>
         </div>

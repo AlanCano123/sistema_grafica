@@ -3,6 +3,7 @@ import { getMaterials, getOperatingCosts, getPricingSettings } from "@/lib/mater
 import { formatPrice } from "@/lib/product-helpers";
 import StatCard from "@/components/StatCard";
 import Cotizador from "@/components/panel/Cotizador";
+import DocumentGenerator from "@/components/panel/documents/DocumentGenerator";
 import { Percent, Timer, Wallet } from "lucide-react";
 
 // D1 solo existe en tiempo real del Worker.
@@ -37,6 +38,10 @@ export default async function CotizadorPage() {
         wholesalePct={settings.wholesale_margin_pct}
         retailPct={settings.retail_margin_pct}
       />
+
+      <div className="mt-6">
+        <DocumentGenerator />
+      </div>
     </>
   );
 }

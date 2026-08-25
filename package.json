@@ -12,6 +12,7 @@
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.8.1",
     "@types/aos": "^3.0.8",
     "aos": "^2.3.4",
     "chart.js": "^4.5.1",
