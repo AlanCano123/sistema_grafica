@@ -50,7 +50,7 @@ export default function Footer() {
             </li>
             <li className="flex items-start gap-2.5">
               <LocationIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-red" />
-              <span>Zapiola 231, Río Gallegos, Santa Cruz</span>
+              <span>Zapiola 253, Río Gallegos, Santa Cruz</span>
             </li>
           </ul>
         </div>

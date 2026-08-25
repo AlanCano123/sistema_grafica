@@ -6,7 +6,7 @@ export const BUSINESS_INFO = {
   razonSocial: "Laser Kind",
   cuit: "20-23942954-9",
   web: "",
-  direccion: "Zapiola 231",
+  direccion: "Zapiola 253",
   localidad: "Rio Gallegos - Santa Cruz",
   telefono: "2966226605",
 };
