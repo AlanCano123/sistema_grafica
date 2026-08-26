@@ -86,7 +86,7 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
         {items.length > 0 && (
           <div className="border-t border-white/10 px-5 py-4">
             <p className="mb-3 text-xs text-neutral-500">
-              Los precios son estimados y están sujetos a modificación — no son precio final. Te confirmamos el
+              Los precios son estimados y están sujetos a modificación — no son precios finales. Te confirmamos el
               presupuesto por WhatsApp.
             </p>
             <button

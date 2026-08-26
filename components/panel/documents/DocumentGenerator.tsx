@@ -5,7 +5,7 @@ import { FileDown, Plus, Trash2 } from "lucide-react";
 import { EMPTY_CLIENT, EMPTY_ITEM, itemsTotal, type ClientInfo, type DocumentItem } from "@/lib/documents";
 import { downloadPdf } from "@/lib/pdf-download";
 import { PresupuestoDocument } from "./DocumentTemplates";
-import { createQuoteAction } from "@/app/panel/cotizador/actions";
+import { createQuoteAction } from "@/app/panel/(dashboard)/cotizador/actions";
 
 const inputClass =
   "w-full rounded border border-gray-200 px-2 py-1.5 text-sm text-gray-800 focus:border-[#4e73df] focus:outline-none";

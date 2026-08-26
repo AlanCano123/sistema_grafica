@@ -20,6 +20,6 @@ export function buildCartMessage(items: CartItem[]): string {
     "",
     ...lines,
     "",
-    "* Los precios son estimados y están sujetos a modificación — no son precio final.",
+    "* Los precios son estimados y están sujetos a modificación — no son precios finales.",
   ].join("\n");
 }

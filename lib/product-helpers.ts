@@ -53,6 +53,19 @@ export function getTotalStock(product: Product): number {
   return product.variants.reduce((sum, v) => sum + (v.stock_available ?? 0), 0);
 }
 
+/**
+ * "BOLSAS ALGODÓN" -> "Bolsas algodón" — primera letra mayúscula, el
+ * resto minúscula (no Title Case por palabra). Los nombres de categoría
+ * vienen tal cual de las APIs de CDO/Maya, con mayúsculas inconsistentes
+ * entre sí — esto es solo para mostrar, nunca se usa para filtrar/linkear
+ * (eso sigue siendo por category.id).
+ */
+export function toSentenceCase(text: string): string {
+  if (!text) return text;
+  const lower = text.toLocaleLowerCase("es-AR");
+  return lower.charAt(0).toLocaleUpperCase("es-AR") + lower.slice(1);
+}
+
 /** Categorías únicas presentes en el catálogo, ordenadas alfabéticamente */
 export function getUniqueCategories(products: Product[]): Category[] {
   const byId = new Map<string, Category>();

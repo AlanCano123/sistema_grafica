@@ -6,7 +6,7 @@ import { getQuoteClient, getQuoteItems, quoteNumber, type Quote } from "@/lib/qu
 import { formatMoney } from "@/lib/documents";
 import { downloadPdf } from "@/lib/pdf-download";
 import { RemitoDocument } from "@/components/panel/documents/DocumentTemplates";
-import { deleteQuoteAction } from "@/app/panel/presupuestos/actions";
+import { deleteQuoteAction } from "@/app/panel/(dashboard)/presupuestos/actions";
 
 const inputClass =
   "w-full rounded border border-gray-200 px-2 py-1.5 text-sm text-gray-800 focus:border-[#4e73df] focus:outline-none";

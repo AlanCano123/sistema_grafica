@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Product } from "@/lib/types";
-import { formatPrice, getEstimatedPriceRange, getMainImage, getTotalStock } from "@/lib/product-helpers";
+import { formatPrice, getEstimatedPriceRange, getMainImage, getTotalStock, toSentenceCase } from "@/lib/product-helpers";
 
 export default function ProductCard({ product, dolarVenta }: { product: Product; dolarVenta: number | null }) {
   const image = getMainImage(product);
@@ -33,7 +33,7 @@ export default function ProductCard({ product, dolarVenta }: { product: Product;
 
       {product.categories && product.categories.length > 0 && (
         <p className="mt-0.5 line-clamp-1 text-xs text-neutral-500">
-          {product.categories.map((c) => c.name).join(", ")}
+          {product.categories.map((c) => toSentenceCase(c.name)).join(", ")}
         </p>
       )}
 

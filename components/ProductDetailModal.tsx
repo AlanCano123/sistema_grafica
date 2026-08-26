@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { X, ShoppingCart, Check } from "lucide-react";
 import type { Product } from "@/lib/types";
-import { formatPrice, getEstimatedPriceRange, getMainImage, getTotalStock } from "@/lib/product-helpers";
+import { formatPrice, getEstimatedPriceRange, getMainImage, getTotalStock, toSentenceCase } from "@/lib/product-helpers";
 import { useCart } from "@/lib/cart-context";
 
 // Ficha de producto del catálogo público — mismo concepto que
@@ -68,7 +68,7 @@ export default function ProductDetailModal({
               <div className="mb-3 flex flex-wrap gap-1.5">
                 {product.categories.map((c) => (
                   <span key={c.id} className="rounded-full border border-white/10 px-2 py-0.5 text-xs text-neutral-400">
-                    {c.name}
+                    {toSentenceCase(c.name)}
                   </span>
                 ))}
               </div>

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/panel", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/panel", label: "Resumen", icon: LayoutDashboard },
   { href: "/panel/pedidos", label: "Pedidos", icon: ClipboardList },
   { href: "/panel/materiales", label: "Materiales", icon: Layers },
   { href: "/panel/proveedores", label: "Proveedores", icon: Truck },
@@ -29,16 +29,21 @@ const NAV_ITEMS = [
   { href: "/panel/ventas", label: "Ventas", icon: ShoppingCart },
 ];
 
-export default function Sidebar() {
+// Abajo de "md" es un drawer off-canvas (PanelChrome maneja el estado
+// `open` y el backdrop); en "md" para arriba queda fijo como siempre.
+export default function Sidebar({ open, onNavigate }: { open: boolean; onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
     <aside
-      className="flex w-56 shrink-0 flex-col text-white"
+      className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col text-white transition-transform duration-200 md:static md:z-auto md:w-56 md:translate-x-0 ${
+        open ? "translate-x-0" : "-translate-x-full"
+      }`}
       style={{ background: "linear-gradient(180deg, #4e73df 10%, #224abe 100%)" }}
     >
       <Link
         href="/panel"
+        onClick={onNavigate}
         className="flex items-center justify-center gap-2 border-b border-white/20 py-4 text-lg font-bold tracking-wide"
       >
         Sistema Gráfica
@@ -51,6 +56,7 @@ export default function Sidebar() {
             <Link
               key={href}
               href={href}
+              onClick={onNavigate}
               className={`flex items-center gap-3 rounded px-3 py-2 text-sm font-medium transition ${
                 isActive ? "bg-white/15 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"
               }`}
@@ -64,6 +70,7 @@ export default function Sidebar() {
 
       <Link
         href="/"
+        onClick={onNavigate}
         className="flex items-center gap-2 border-t border-white/20 px-4 py-3 text-xs text-white/70 hover:text-white"
       >
         <ExternalLink size={14} />

@@ -1,10 +1,19 @@
-import { Search, UserCircle } from "lucide-react";
+import { LogOut, Menu, Search, UserCircle } from "lucide-react";
+import { logoutAction } from "@/app/panel/login/actions";
 
-// Búsqueda decorativa por ahora (sin funcionalidad real todavía) y usuario
-// placeholder — no hay auth implementada, ver nota en app/panel/layout.tsx.
-export default function Topbar() {
+// Búsqueda decorativa por ahora (sin funcionalidad real todavía).
+export default function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   return (
-    <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3 shadow-sm">
+    <header className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3 shadow-sm md:px-6">
+      <button
+        type="button"
+        onClick={onMenuClick}
+        aria-label="Abrir menú"
+        className="p-1 text-gray-500 hover:text-gray-700 md:hidden"
+      >
+        <Menu size={22} />
+      </button>
+
       <div className="relative w-full max-w-xs">
         <Search size={16} className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
         <input
@@ -15,9 +24,20 @@ export default function Topbar() {
         />
       </div>
 
-      <div className="flex items-center gap-2 text-sm text-gray-600">
-        <UserCircle size={22} className="text-gray-400" />
-        Administrador
+      <div className="flex shrink-0 items-center gap-3 text-sm text-gray-600">
+        <span className="hidden items-center gap-2 sm:flex">
+          <UserCircle size={22} className="text-gray-400" />
+          Administrador
+        </span>
+        <form action={logoutAction}>
+          <button
+            type="submit"
+            className="flex items-center gap-1.5 rounded px-2 py-1.5 text-xs font-semibold text-gray-500 hover:bg-gray-100 hover:text-[#e74a3b]"
+          >
+            <LogOut size={14} />
+            <span className="hidden sm:inline">Salir</span>
+          </button>
+        </form>
       </div>
     </header>
   );
