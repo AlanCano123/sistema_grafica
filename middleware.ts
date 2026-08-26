@@ -1,13 +1,19 @@
 // Gate de acceso a /panel — login básico (ver lib/panel-auth.ts).
 //
-// Next 16 renombró "middleware.ts" a "proxy.ts" (mismo mecanismo, cambia
-// el nombre del archivo y de la función exportada) — confirmado en
-// node_modules/next/dist/docs/.../file-conventions/proxy.md.
+// Next 16 renombró "middleware.ts" a "proxy.ts", PERO "proxy" fuerza
+// runtime Node.js y no se puede cambiar — y @opennextjs/cloudflare NO
+// soporta Node.js middleware en Workers ("ERROR Node.js middleware is
+// not currently supported. Consider switching to Edge Middleware.",
+// falló el deploy real con proxy.ts). La propia doc de Next 16 dice
+// "If you want to continue using the edge runtime, keep using
+// middleware" (node_modules/next/dist/docs/.../upgrading/version-16.md)
+// — por eso este archivo se queda en la convención vieja a propósito,
+// no es un descuido.
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, SESSION_VALUE } from "@/lib/panel-auth";
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // La página de login (y su Server Action, que postea al mismo path)
