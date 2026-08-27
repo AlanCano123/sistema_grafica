@@ -1,6 +1,7 @@
 import { materialRatePerMm2, type Material } from "@/lib/materials";
 import { getMaterials } from "@/lib/materials-db";
 import { formatPrice } from "@/lib/product-helpers";
+import { requireAuth } from "@/lib/panel-auth";
 import { createMaterialAction, deleteMaterialAction, updateMaterialAction } from "./actions";
 
 // D1 solo existe en tiempo real del Worker — sin esto la página quedaría
@@ -184,6 +185,7 @@ function MaterialsCalcTable({ materials }: { materials: Material[] }) {
 }
 
 export default async function MaterialesPage() {
+  await requireAuth();
   const materials = await getMaterials();
 
   return (

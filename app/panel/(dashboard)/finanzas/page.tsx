@@ -4,6 +4,7 @@ import { getBalance, getOrderCost, getOrders, type Order } from "@/lib/orders";
 import { getMaterials, getOperatingCosts, getPricingSettings } from "@/lib/materials-db";
 import { computeMoRates, type Material } from "@/lib/materials";
 import { formatPrice } from "@/lib/product-helpers";
+import { requireAdmin } from "@/lib/panel-auth";
 import StatCard from "@/components/StatCard";
 import ProgressBar from "@/components/panel/ProgressBar";
 import { DollarSign, Receipt } from "lucide-react";
@@ -28,6 +29,7 @@ interface PageProps {
 }
 
 export default async function FinanzasPage({ searchParams }: PageProps) {
+  await requireAdmin();
   const { historial } = await searchParams;
   const verTodo = historial === "todo";
   const [sales, orders, materials, settings, costs] = await Promise.all([

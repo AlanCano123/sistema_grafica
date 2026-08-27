@@ -3,15 +3,16 @@
 import { useState } from "react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import type { Role } from "@/lib/panel-roles";
 
 // Dueño del estado del drawer mobile — Sidebar y Topbar son hermanos en
 // el layout, así que el toggle vive acá arriba de los dos.
-export default function PanelChrome({ children }: { children: React.ReactNode }) {
+export default function PanelChrome({ role, children }: { role: Role; children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <div className="flex min-h-screen bg-[#f8f9fc]">
-      <Sidebar open={mobileOpen} onNavigate={() => setMobileOpen(false)} />
+      <Sidebar role={role} open={mobileOpen} onNavigate={() => setMobileOpen(false)} />
 
       {mobileOpen && (
         <div

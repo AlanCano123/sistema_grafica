@@ -1,5 +1,6 @@
 import { getDebts, getDebtBalance, getSales } from "@/lib/business";
 import { formatPrice } from "@/lib/product-helpers";
+import { requireAdmin } from "@/lib/panel-auth";
 import StatCard from "@/components/StatCard";
 import SalesAreaChart from "@/components/panel/SalesAreaChart";
 import DebtsDoughnutChart from "@/components/panel/DebtsDoughnutChart";
@@ -10,6 +11,7 @@ import { DollarSign, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function PanelPage() {
+  await requireAdmin();
   const [debts, sales] = await Promise.all([getDebts(), getSales()]);
 
   const receivables = debts.filter((d) => d.direction === "receivable" && d.status === "pending");

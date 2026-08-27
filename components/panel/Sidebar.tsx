@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ADMIN_ONLY_PATHS, USER_HOME_PATH, type Role } from "@/lib/panel-roles";
 import {
   LayoutDashboard,
   Wallet,
@@ -31,8 +32,13 @@ const NAV_ITEMS = [
 
 // Abajo de "md" es un drawer off-canvas (PanelChrome maneja el estado
 // `open` y el backdrop); en "md" para arriba queda fijo como siempre.
-export default function Sidebar({ open, onNavigate }: { open: boolean; onNavigate?: () => void }) {
+export default function Sidebar({ role, open, onNavigate }: { role: Role; open: boolean; onNavigate?: () => void }) {
   const pathname = usePathname();
+  // "usuario" no ve los links de las secciones admin-only — la
+  // restricción real (por si entra a la URL a mano) la hace
+  // requireAdmin() en cada page.tsx, esto es solo no ofrecer el link.
+  const items = role === "admin" ? NAV_ITEMS : NAV_ITEMS.filter((item) => !ADMIN_ONLY_PATHS.includes(item.href));
+  const homeHref = role === "admin" ? "/panel" : USER_HOME_PATH;
 
   return (
     <aside
@@ -42,7 +48,7 @@ export default function Sidebar({ open, onNavigate }: { open: boolean; onNavigat
       style={{ background: "linear-gradient(180deg, #4e73df 10%, #224abe 100%)" }}
     >
       <Link
-        href="/panel"
+        href={homeHref}
         onClick={onNavigate}
         className="flex items-center justify-center gap-2 border-b border-white/20 py-4 text-lg font-bold tracking-wide"
       >
@@ -50,7 +56,7 @@ export default function Sidebar({ open, onNavigate }: { open: boolean; onNavigat
       </Link>
 
       <nav className="mt-2 flex flex-1 flex-col gap-1 px-2">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {items.map(({ href, label, icon: Icon }) => {
           const isActive = href === "/panel" ? pathname === "/panel" : pathname.startsWith(href);
           return (
             <Link

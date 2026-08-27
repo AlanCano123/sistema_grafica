@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createOrder, deleteOrder, getOrderById, updateOrder, updateOrderStatus, type OrderStatus } from "@/lib/orders";
 import { createSaleFromOrder } from "@/lib/business";
+import { requireAuth } from "@/lib/panel-auth";
+import { requiredNumber, requiredString } from "@/lib/validate";
 
 type BalanceCheckable = {
   id: number;
@@ -57,11 +59,12 @@ function tri(formData: FormData, key: string): 0 | 1 | null {
 }
 
 export async function createOrderAction(formData: FormData) {
+  await requireAuth();
   await createOrder({
-    order_number: String(formData.get("order_number") ?? ""),
+    order_number: requiredString(formData, "order_number", { max: 60 }),
     file_number: text(formData, "file_number"),
-    client_name: String(formData.get("client_name") ?? ""),
-    job_name: String(formData.get("job_name") ?? ""),
+    client_name: requiredString(formData, "client_name", { max: 150 }),
+    job_name: requiredString(formData, "job_name", { max: 150 }),
     status: (String(formData.get("status") ?? "pendiente") as OrderStatus) || "pendiente",
     has_deposit: formData.get("has_deposit") ? 1 : 0,
     deposit_amount: num(formData, "deposit_amount"),
@@ -76,12 +79,13 @@ export async function createOrderAction(formData: FormData) {
 }
 
 export async function updateOrderAction(formData: FormData) {
-  const id = Number(formData.get("id"));
+  await requireAuth();
+  const id = requiredNumber(formData, "id", { min: 1 });
   const data = {
-    order_number: String(formData.get("order_number") ?? ""),
+    order_number: requiredString(formData, "order_number", { max: 60 }),
     file_number: text(formData, "file_number"),
-    client_name: String(formData.get("client_name") ?? ""),
-    job_name: String(formData.get("job_name") ?? ""),
+    client_name: requiredString(formData, "client_name", { max: 150 }),
+    job_name: requiredString(formData, "job_name", { max: 150 }),
     status: (String(formData.get("status") ?? "pendiente") as OrderStatus) || "pendiente",
     delivered_on_time: tri(formData, "delivered_on_time"),
     has_deposit: (formData.get("has_deposit") ? 1 : 0) as 0 | 1,
@@ -100,7 +104,8 @@ export async function updateOrderAction(formData: FormData) {
 }
 
 export async function updateOrderStatusAction(formData: FormData) {
-  const id = Number(formData.get("id"));
+  await requireAuth();
+  const id = requiredNumber(formData, "id", { min: 1 });
   const status = String(formData.get("status") ?? "pendiente") as OrderStatus;
   await updateOrderStatus(id, status, tri(formData, "delivered_on_time"));
 
@@ -113,7 +118,8 @@ export async function updateOrderStatusAction(formData: FormData) {
 }
 
 export async function deleteOrderAction(formData: FormData) {
-  const id = Number(formData.get("id"));
+  await requireAuth();
+  const id = requiredNumber(formData, "id", { min: 1 });
   await deleteOrder(id);
   revalidatePath("/panel/pedidos");
 }

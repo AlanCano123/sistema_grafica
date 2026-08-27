@@ -1,6 +1,7 @@
 import { computeMoRates, type OperatingCost } from "@/lib/materials";
 import { getOperatingCosts, getPricingSettings } from "@/lib/materials-db";
 import { formatPrice } from "@/lib/product-helpers";
+import { requireAdmin } from "@/lib/panel-auth";
 import StatCard from "@/components/StatCard";
 import { Clock, DollarSign, Timer, Users, Wallet } from "lucide-react";
 import {
@@ -125,6 +126,7 @@ function CostTable({
 }
 
 export default async function ConfiguracionPage() {
+  await requireAdmin();
   const [settings, costs] = await Promise.all([getPricingSettings(), getOperatingCosts()]);
   const operatingCosts = costs.filter((c) => c.category === "operativo");
   const payrollCosts = costs.filter((c) => c.category === "rrhh");

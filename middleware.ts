@@ -11,8 +11,15 @@
 // no es un descuido.
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE, SESSION_VALUE } from "@/lib/panel-auth";
+import { SESSION_COOKIE } from "@/lib/panel-auth";
 
+// Gate BARATO a propósito: solo mira si existe la cookie, no verifica su
+// firma ni el rol (eso pasa en requireAuth()/requireAdmin(), llamados
+// desde Server Components/Actions con acceso real a bindings de
+// Cloudflare vía getCloudflareContext() — no hay forma confirmada de que
+// ESTE archivo lo tenga bajo OpenNext). Este es solo el primer filtro
+// para no renderizar nada a un anónimo; la verificación de verdad (y el
+// chequeo de rol) es responsabilidad de lib/panel-auth.ts.
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -23,8 +30,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isLoggedIn = request.cookies.get(SESSION_COOKIE)?.value === SESSION_VALUE;
-  if (!isLoggedIn) {
+  const hasSessionCookie = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
+  if (!hasSessionCookie) {
     return NextResponse.redirect(new URL("/panel/login", request.url));
   }
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getDebts, getDebtBalance, type Debt } from "@/lib/business";
 import { formatPrice } from "@/lib/product-helpers";
+import { requireAdmin } from "@/lib/panel-auth";
 import { createDebtAction, deleteDebtAction, updateDebtAction } from "./actions";
 
 // D1 solo existe en tiempo real del Worker.
@@ -150,6 +151,7 @@ interface PageProps {
 }
 
 export default async function DeudasPage({ searchParams }: PageProps) {
+  await requireAdmin();
   const { historial } = await searchParams;
   const verTodo = historial === "todo";
   const debts = await getDebts(verTodo ? undefined : sinceDate());

@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createSale, deleteSale, updateSale } from "@/lib/business";
+import { requireAuth } from "@/lib/panel-auth";
+import { requiredNumber, requiredString } from "@/lib/validate";
 
 function text(formData: FormData, key: string): string | null {
   const v = String(formData.get(key) ?? "").trim();
@@ -16,9 +18,10 @@ function optionalNumber(formData: FormData, key: string): number | null {
 }
 
 export async function createSaleAction(formData: FormData) {
+  await requireAuth();
   await createSale({
-    description: String(formData.get("description") ?? ""),
-    amount: parseFloat(String(formData.get("amount") ?? "0")) || 0,
+    description: requiredString(formData, "description", { max: 300 }),
+    amount: requiredNumber(formData, "amount", { min: 0, max: 1_000_000_000 }),
     sale_date: String(formData.get("sale_date") ?? new Date().toISOString().slice(0, 10)),
     client_name: text(formData, "client_name"),
     payment_method: text(formData, "payment_method"),
@@ -29,10 +32,11 @@ export async function createSaleAction(formData: FormData) {
 }
 
 export async function updateSaleAction(formData: FormData) {
-  const id = Number(formData.get("id"));
+  await requireAuth();
+  const id = requiredNumber(formData, "id", { min: 1 });
   await updateSale(id, {
-    description: String(formData.get("description") ?? ""),
-    amount: parseFloat(String(formData.get("amount") ?? "0")) || 0,
+    description: requiredString(formData, "description", { max: 300 }),
+    amount: requiredNumber(formData, "amount", { min: 0, max: 1_000_000_000 }),
     sale_date: String(formData.get("sale_date") ?? ""),
     client_name: text(formData, "client_name"),
     payment_method: text(formData, "payment_method"),
@@ -43,7 +47,8 @@ export async function updateSaleAction(formData: FormData) {
 }
 
 export async function deleteSaleAction(formData: FormData) {
-  const id = Number(formData.get("id"));
+  await requireAuth();
+  const id = requiredNumber(formData, "id", { min: 1 });
   await deleteSale(id);
   revalidatePath("/panel/ventas");
 }
