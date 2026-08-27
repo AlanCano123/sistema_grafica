@@ -6,22 +6,16 @@ import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 initOpenNextCloudflareForDev();
 
 // CSP sin nonces a propósito — la forma "correcta" (con nonces) se genera
-// desde middleware.ts/proxy.ts, y justo hoy el deploy real se rompió por
-// un problema de runtime ahí (ver lib/panel-auth.ts) — no quiero apilar
-// un segundo cambio de riesgo sobre middleware el mismo día. Esta CSP no
-// toca middleware, va directo por next.config.ts — mejorable a nonces
-// más adelante si hace falta más rigor.
+// desde middleware.ts, mejorable más adelante si hace falta más rigor.
 // 'unsafe-inline' en script/style: App Router usa scripts inline para
-// streaming de RSC — sin nonces no hay forma de evitarlo. challenges.cloudflare.com
-// es el widget de Turnstile del login (script + iframe + su propio fetch).
+// streaming de RSC — sin nonces no hay forma de evitarlo.
 const cspHeader = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com;
+  script-src 'self' 'unsafe-inline';
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: https://d2jygl58194cng.cloudfront.net https://d1ok1ldurjeiif.cloudfront.net https://assets.cdo.dev.yellowspot.com.ar https://assets.cdopromocionales.com https://mayapublicidad.com;
   font-src 'self';
-  connect-src 'self' https://challenges.cloudflare.com;
-  frame-src https://challenges.cloudflare.com;
+  connect-src 'self';
   object-src 'none';
   base-uri 'self';
   form-action 'self';
