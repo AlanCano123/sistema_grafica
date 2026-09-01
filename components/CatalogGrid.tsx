@@ -8,7 +8,15 @@ import ProductDetailModal from "./ProductDetailModal";
 // Mismo patrón que components/panel/proveedores/ProveedoresBrowser.tsx:
 // estado de selección acá arriba, ProductCard queda "tonto" (solo props),
 // el modal se abre al clickear una tarjeta.
-export default function CatalogGrid({ products, dolarVenta }: { products: Product[]; dolarVenta: number | null }) {
+export default function CatalogGrid({
+  products,
+  dolarVenta,
+  catalogMultiplier,
+}: {
+  products: Product[];
+  dolarVenta: number | null;
+  catalogMultiplier: number;
+}) {
   const [selected, setSelected] = useState<Product | null>(null);
 
   return (
@@ -22,12 +30,19 @@ export default function CatalogGrid({ products, dolarVenta }: { products: Produc
             className="text-left"
             aria-label={`Ver detalle de ${product.name}`}
           >
-            <ProductCard product={product} dolarVenta={dolarVenta} />
+            <ProductCard product={product} dolarVenta={dolarVenta} catalogMultiplier={catalogMultiplier} />
           </button>
         ))}
       </div>
 
-      {selected && <ProductDetailModal product={selected} dolarVenta={dolarVenta} onClose={() => setSelected(null)} />}
+      {selected && (
+        <ProductDetailModal
+          product={selected}
+          dolarVenta={dolarVenta}
+          catalogMultiplier={catalogMultiplier}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </>
   );
 }

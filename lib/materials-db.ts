@@ -94,11 +94,11 @@ export async function getPricingSettings(): Promise<PricingSettings> {
   }
 }
 
-// `avg_mo_minutes_web` no se edita más desde el panel (se sacó de
-// Configuración) — la columna queda con su valor de seed y la usa la
-// calculadora pública (app/(site)/page.tsx).
+// Configuración de costos/márgenes internos (pantalla Configuración, bajo
+// Finanzas). `avg_mo_minutes_web` y `catalog_multiplier` son del sitio
+// público — se editan en /panel/sitio con updateSiteSettings().
 export async function updatePricingSettings(
-  data: Omit<PricingSettings, "id" | "avg_mo_minutes_web">
+  data: Omit<PricingSettings, "id" | "avg_mo_minutes_web" | "catalog_multiplier">
 ): Promise<void> {
   const { env } = await getCloudflareContext({ async: true });
   await env.DB.prepare(
@@ -111,5 +111,19 @@ export async function updatePricingSettings(
       data.wholesale_margin_pct,
       data.retail_margin_pct
     )
+    .run();
+}
+
+/** Settings del sitio público: minutos MO promedio de la calculadora y
+ * multiplicador de precios del catálogo. */
+export async function updateSiteSettings(data: {
+  avg_mo_minutes_web: number;
+  catalog_multiplier: number;
+}): Promise<void> {
+  const { env } = await getCloudflareContext({ async: true });
+  await env.DB.prepare(
+    "UPDATE pricing_settings SET avg_mo_minutes_web = ?, catalog_multiplier = ? WHERE id = 1"
+  )
+    .bind(data.avg_mo_minutes_web, data.catalog_multiplier)
     .run();
 }

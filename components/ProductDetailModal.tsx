@@ -14,17 +14,19 @@ import { useCart } from "@/lib/cart-context";
 export default function ProductDetailModal({
   product,
   dolarVenta,
+  catalogMultiplier,
   onClose,
 }: {
   product: Product;
   dolarVenta: number | null;
+  catalogMultiplier: number;
   onClose: () => void;
 }) {
   const { add } = useCart();
   const [added, setAdded] = useState(false);
   const stock = getTotalStock(product);
   const sinStock = stock <= 0;
-  const priceRange = getEstimatedPriceRange(product, dolarVenta);
+  const priceRange = getEstimatedPriceRange(product, dolarVenta, catalogMultiplier);
 
   function handleAdd() {
     add({

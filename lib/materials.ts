@@ -34,6 +34,7 @@ export interface PricingSettings {
   wholesale_margin_pct: number;
   retail_margin_pct: number;
   avg_mo_minutes_web: number; // minutos de MO promedio usados en la calculadora pública
+  catalog_multiplier: number; // multiplicador del precio de proveedor en el catálogo público
 }
 
 export const DEFAULT_SETTINGS: PricingSettings = {
@@ -44,6 +45,7 @@ export const DEFAULT_SETTINGS: PricingSettings = {
   wholesale_margin_pct: 50,
   retail_margin_pct: 100,
   avg_mo_minutes_web: 2.5,
+  catalog_multiplier: 3,
 };
 
 /** Costo por mm² de un material: no se guarda en DB, se deriva siempre del

@@ -2,11 +2,19 @@ import Image from "next/image";
 import { Product } from "@/lib/types";
 import { formatPrice, getEstimatedPriceRange, getMainImage, getTotalStock, toSentenceCase } from "@/lib/product-helpers";
 
-export default function ProductCard({ product, dolarVenta }: { product: Product; dolarVenta: number | null }) {
+export default function ProductCard({
+  product,
+  dolarVenta,
+  catalogMultiplier,
+}: {
+  product: Product;
+  dolarVenta: number | null;
+  catalogMultiplier: number;
+}) {
   const image = getMainImage(product);
   const stock = getTotalStock(product);
   const sinStock = stock <= 0;
-  const priceRange = getEstimatedPriceRange(product, dolarVenta);
+  const priceRange = getEstimatedPriceRange(product, dolarVenta, catalogMultiplier);
 
   return (
     <div className="flex flex-col items-start">

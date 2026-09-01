@@ -97,8 +97,11 @@ export function formatPrice(value: number): string {
 // está en ARS. Confirmado: CDO siempre da USD (por eso siempre < 100),
 // Maya es mixto sin patrón — este chequeo por cifras separa los dos casos
 // producto a producto. Todo precio mostrado —convertido de USD o ya en
-// ARS— lleva +100% (es precio de proveedor mayorista en los dos casos).
-// Son precios ESTIMADOS, se muestran siempre con esa aclaración en la UI.
+// ARS— se multiplica por `multiplier` (config `catalog_multiplier` en
+// pricing_settings, editable en /panel/sitio, default 3). Son precios
+// ESTIMADOS, se muestran siempre con esa aclaración en la UI.
+
+const DEFAULT_CATALOG_MULTIPLIER = 3;
 
 export function looksLikeUsd(rawValue: number): boolean {
   return rawValue < 100;
@@ -109,19 +112,28 @@ export function looksLikeUsd(rawValue: number): boolean {
  * `null` si el valor parece USD y no hay cotización de dólar disponible
  * (las dos fuentes de lib/dolar.ts fallaron) — nunca se inventa un número.
  */
-export function estimateArsPrice(rawValue: number, dolarVenta: number | null): number | null {
+export function estimateArsPrice(
+  rawValue: number,
+  dolarVenta: number | null,
+  multiplier: number = DEFAULT_CATALOG_MULTIPLIER
+): number | null {
+  const m = Number.isFinite(multiplier) && multiplier > 0 ? multiplier : DEFAULT_CATALOG_MULTIPLIER;
   if (looksLikeUsd(rawValue)) {
-    return dolarVenta == null ? null : rawValue * dolarVenta * 2;
+    return dolarVenta == null ? null : rawValue * dolarVenta * m;
   }
-  return rawValue * 2;
+  return rawValue * m;
 }
 
 /** Rango de precio ESTIMADO (en pesos) entre todos los variantes. `null` si ninguno se pudo estimar. */
-export function getEstimatedPriceRange(product: Product, dolarVenta: number | null): { min: number; max: number } | null {
+export function getEstimatedPriceRange(
+  product: Product,
+  dolarVenta: number | null,
+  multiplier: number = DEFAULT_CATALOG_MULTIPLIER
+): { min: number; max: number } | null {
   const prices = product.variants
     .map((v) => parseFloat(v.net_price))
     .filter((p) => !isNaN(p))
-    .map((raw) => estimateArsPrice(raw, dolarVenta))
+    .map((raw) => estimateArsPrice(raw, dolarVenta, multiplier))
     .filter((p): p is number => p != null);
 
   if (prices.length === 0) return null;

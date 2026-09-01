@@ -1,5 +1,6 @@
 import { getCombinedProducts } from "@/lib/catalog";
 import { getDolarOficialVenta } from "@/lib/dolar";
+import { getPricingSettings } from "@/lib/materials-db";
 import { filterByCategory, getUniqueCategories, hasPlaceholderImage } from "@/lib/product-helpers";
 import CatalogGrid from "@/components/CatalogGrid";
 import Pagination from "@/components/Pagination";
@@ -16,7 +17,12 @@ export default async function CatalogoPage({ searchParams }: PageProps) {
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
   const category = params.category ?? null;
 
-  const [allProductsRaw, dolarVenta] = await Promise.all([getCombinedProducts(), getDolarOficialVenta()]);
+  const [allProductsRaw, dolarVenta, settings] = await Promise.all([
+    getCombinedProducts(),
+    getDolarOficialVenta(),
+    getPricingSettings(),
+  ]);
+  const catalogMultiplier = settings.catalog_multiplier;
   const allProducts = allProductsRaw.filter((p) => !hasPlaceholderImage(p));
   const categories = getUniqueCategories(allProducts);
   const filtered = filterByCategory(allProducts, category);
@@ -41,7 +47,7 @@ export default async function CatalogoPage({ searchParams }: PageProps) {
             {products.length === 0 ? (
               <p className="text-neutral-500">No se encontraron productos.</p>
             ) : (
-              <CatalogGrid products={products} dolarVenta={dolarVenta} />
+              <CatalogGrid products={products} dolarVenta={dolarVenta} catalogMultiplier={catalogMultiplier} />
             )}
 
             <Pagination currentPage={currentPage} totalPages={totalPages} category={category} />

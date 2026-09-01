@@ -11,7 +11,14 @@ export type Role = "admin" | "usuario";
 // entra desde Finanzas), pero sigue siendo admin-only por si se linkea.
 // "usuario" ve: Cotizador, Pedidos, Cuentas corrientes, Materiales, Presupuestos.
 // Un solo lugar para ajustar esto después, sin tocar lógica.
-export const ADMIN_ONLY_PATHS = ["/panel", "/panel/proveedores", "/panel/configuracion", "/panel/finanzas", "/panel/deudas"];
+export const ADMIN_ONLY_PATHS = [
+  "/panel",
+  "/panel/proveedores",
+  "/panel/configuracion",
+  "/panel/finanzas",
+  "/panel/deudas",
+  "/panel/sitio",
+];
 
 // A dónde va "usuario" al entrar al panel (no ve el Resumen). requireAdmin()
 // también manda acá a cualquier no-admin que intente una ruta admin-only.

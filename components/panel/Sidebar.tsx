@@ -14,6 +14,7 @@ import {
   Users,
   Truck,
   FileText,
+  Images,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { href: "/panel/presupuestos", label: "Presupuestos", icon: FileText },
   { href: "/panel/finanzas", label: "Finanzas", icon: PiggyBank },
   { href: "/panel/deudas", label: "Movimientos", icon: Wallet },
+  { href: "/panel/sitio", label: "Sitio web", icon: Images },
 ];
 
 // Abajo de "md" es un drawer off-canvas (PanelChrome maneja el estado
