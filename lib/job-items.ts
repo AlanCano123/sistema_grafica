@@ -75,15 +75,20 @@ export function itemsTotal(items: JobItem[]): number {
 }
 
 export interface ItemBreakdown {
+  materialCost: number;
+  laborCost: number;
   finalCost: number;
-  wholesaleUnit: number;
-  retailUnit: number;
+  wholesaleMargin: number;
+  wholesaleUnit: number; // precio mayorista unitario
+  retailMargin: number;
+  retailUnit: number; // precio minorista unitario
   wholesaleLine: number; // wholesaleUnit * quantity
   retailLine: number; // retailUnit * quantity
 }
 
-/** Mayorista/minorista sugeridos para un item, con la fórmula del Cotizador
- * (material + medidas + minutos). `null` si al item le falta algún dato. */
+/** Desglose completo de un item (mismo que el Cotizador viejo: costo
+ * material + MO, costo final, márgenes y precios mayorista/minorista), más
+ * los totales × cantidad. `null` si al item le falta material o medidas. */
 export function itemBreakdown(
   item: { materialId: number | null; widthMm: number | null; lengthMm: number | null; moMinutes: number | null; quantity: number },
   materialsById: Map<number, Material>,
@@ -97,8 +102,12 @@ export function itemBreakdown(
   if (!bd) return null;
   const qty = item.quantity || 0;
   return {
+    materialCost: bd.materialCost,
+    laborCost: bd.laborCost,
     finalCost: bd.finalCost,
+    wholesaleMargin: bd.wholesaleMargin,
     wholesaleUnit: bd.wholesalePrice,
+    retailMargin: bd.retailMargin,
     retailUnit: bd.retailPrice,
     wholesaleLine: bd.wholesalePrice * qty,
     retailLine: bd.retailPrice * qty,

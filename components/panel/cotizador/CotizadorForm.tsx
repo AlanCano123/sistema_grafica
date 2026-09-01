@@ -288,39 +288,49 @@ export default function CotizadorForm({
                 </div>
 
                 {bd ? (
-                  <div className="mt-3 flex flex-wrap items-center gap-2 rounded bg-gray-50 px-3 py-2 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updateItem(i, "unitPrice", Math.round(bd.wholesaleUnit * 100) / 100);
-                        updateItem(i, "priceMode", "mayorista");
-                      }}
-                      className={`rounded px-2 py-1 font-semibold ${
-                        item.priceMode === "mayorista" ? "bg-[#4e73df] text-white" : "bg-white text-[#4e73df] ring-1 ring-[#4e73df]/40"
-                      }`}
-                    >
-                      Usar mayorista {formatPrice(bd.wholesaleUnit)}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updateItem(i, "unitPrice", Math.round(bd.retailUnit * 100) / 100);
-                        updateItem(i, "priceMode", "minorista");
-                      }}
-                      className={`rounded px-2 py-1 font-semibold ${
-                        item.priceMode === "minorista" ? "bg-[#1cc88a] text-white" : "bg-white text-[#1cc88a] ring-1 ring-[#1cc88a]/40"
-                      }`}
-                    >
-                      Usar minorista {formatPrice(bd.retailUnit)}
-                    </button>
-                    <span className="text-gray-500">
-                      Mayorista × {item.quantity || 0} = <b>{formatPrice(bd.wholesaleLine)}</b> · Minorista × {item.quantity || 0} ={" "}
-                      <b>{formatPrice(bd.retailLine)}</b>
-                    </span>
+                  <div className="mt-3 rounded border border-gray-100 bg-gray-50 p-3">
+                    <h3 className="mb-2 text-xs font-bold text-[#4e73df]">Desglose</h3>
+                    <dl className="divide-y divide-gray-200 text-xs">
+                      <Row label="Costo material" value={formatPrice(bd.materialCost)} />
+                      <Row label="Costo mano de obra" value={formatPrice(bd.laborCost)} />
+                      <Row label="Costo final" value={formatPrice(bd.finalCost)} bold />
+                      <Row label="Margen mayorista" value={formatPrice(bd.wholesaleMargin)} />
+                      <Row label="Precio mayorista (unit.)" value={formatPrice(bd.wholesaleUnit)} accent="blue" />
+                      <Row label="Margen minorista" value={formatPrice(bd.retailMargin)} />
+                      <Row label="Precio minorista (unit.)" value={formatPrice(bd.retailUnit)} accent="green" />
+                      <Row label={`Mayorista × ${item.quantity || 0}`} value={formatPrice(bd.wholesaleLine)} accent="blue" />
+                      <Row label={`Minorista × ${item.quantity || 0}`} value={formatPrice(bd.retailLine)} accent="green" />
+                    </dl>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateItem(i, "unitPrice", Math.round(bd.wholesaleUnit * 100) / 100);
+                          updateItem(i, "priceMode", "mayorista");
+                        }}
+                        className={`rounded px-2 py-1 text-xs font-semibold ${
+                          item.priceMode === "mayorista" ? "bg-[#4e73df] text-white" : "bg-white text-[#4e73df] ring-1 ring-[#4e73df]/40"
+                        }`}
+                      >
+                        Usar mayorista
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateItem(i, "unitPrice", Math.round(bd.retailUnit * 100) / 100);
+                          updateItem(i, "priceMode", "minorista");
+                        }}
+                        className={`rounded px-2 py-1 text-xs font-semibold ${
+                          item.priceMode === "minorista" ? "bg-[#1cc88a] text-white" : "bg-white text-[#1cc88a] ring-1 ring-[#1cc88a]/40"
+                        }`}
+                      >
+                        Usar minorista
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <p className="mt-3 text-xs text-gray-400">
-                    Cargá material, ancho y largo para ver mayorista/minorista sugeridos.
+                    Cargá material, ancho y largo para ver el desglose (mayorista/minorista).
                   </p>
                 )}
               </div>
@@ -469,6 +479,26 @@ export default function CotizadorForm({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function Row({
+  label,
+  value,
+  bold,
+  accent,
+}: {
+  label: string;
+  value: string;
+  bold?: boolean;
+  accent?: "blue" | "green";
+}) {
+  const accentClass = accent === "blue" ? "text-[#4e73df]" : accent === "green" ? "text-[#1cc88a]" : "text-gray-800";
+  return (
+    <div className="flex items-center justify-between py-1.5">
+      <dt className="text-gray-500">{label}</dt>
+      <dd className={`${bold ? "font-bold" : "font-medium"} ${accentClass}`}>{value}</dd>
     </div>
   );
 }
