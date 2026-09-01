@@ -107,12 +107,20 @@ export default async function FinanzasPage({ searchParams }: PageProps) {
     <>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-gray-800">Finanzas</h1>
-        <Link
-          href={verTodo ? "/panel/finanzas" : "/panel/finanzas?historial=todo"}
-          className="text-xs font-semibold text-gray-500 hover:underline"
-        >
-          {verTodo ? "Ver solo recientes" : `Ver historial completo (más de ${HISTORY_DAYS} días)`}
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href={verTodo ? "/panel/finanzas" : "/panel/finanzas?historial=todo"}
+            className="text-xs font-semibold text-gray-500 hover:underline"
+          >
+            {verTodo ? "Ver solo recientes" : `Ver historial completo (más de ${HISTORY_DAYS} días)`}
+          </Link>
+          <Link
+            href="/panel/configuracion"
+            className="rounded bg-[#4e73df] px-3 py-1.5 text-sm font-semibold text-white hover:bg-[#3d5cc4]"
+          >
+            Ver gastos fijos y precios
+          </Link>
+        </div>
       </div>
 
       <p className="mb-4 text-xs text-gray-400">

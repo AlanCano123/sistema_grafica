@@ -41,7 +41,6 @@ export async function updateSettingsAction(formData: FormData) {
     daily_hours: requiredNumber(formData, "daily_hours", { min: 0, max: 24 }),
     wholesale_margin_pct: requiredNumber(formData, "wholesale_margin_pct", { min: 0, max: 1000 }),
     retail_margin_pct: requiredNumber(formData, "retail_margin_pct", { min: 0, max: 1000 }),
-    avg_mo_minutes_web: requiredNumber(formData, "avg_mo_minutes_web", { min: 0, max: 1000 }),
   });
   revalidatePath("/panel/configuracion");
   revalidatePath("/");

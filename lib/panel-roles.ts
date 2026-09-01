@@ -5,10 +5,11 @@
 export type Role = "admin" | "usuario";
 
 // Rutas del panel que solo puede ver "admin" — exponen costos/márgenes o
-// plata (Proveedores: precios mayoristas crudos de CDO/Maya; Configuración:
-// costos/márgenes globales; Finanzas y Movimientos: plata directamente;
-// "/panel" el Resumen muestra cobros/pagos pendientes y ventas totales).
-// "usuario" ve: Cotizador, Pedidos, Materiales, Presupuestos.
+// plata (Proveedores: precios mayoristas crudos de CDO/Maya; Finanzas y
+// Movimientos: plata directamente; "/panel" el Resumen muestra cobros/pagos
+// pendientes y ventas totales). Configuración ya no está en el Sidebar (se
+// entra desde Finanzas), pero sigue siendo admin-only por si se linkea.
+// "usuario" ve: Cotizador, Pedidos, Cuentas corrientes, Materiales, Presupuestos.
 // Un solo lugar para ajustar esto después, sin tocar lógica.
 export const ADMIN_ONLY_PATHS = ["/panel", "/panel/proveedores", "/panel/configuracion", "/panel/finanzas", "/panel/deudas"];
 

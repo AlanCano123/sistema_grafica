@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { computeMoRates, type OperatingCost } from "@/lib/materials";
 import { getOperatingCosts, getPricingSettings } from "@/lib/materials-db";
 import { formatPrice } from "@/lib/product-helpers";
 import { requireAdmin } from "@/lib/panel-auth";
 import StatCard from "@/components/StatCard";
-import { Clock, DollarSign, Timer, Users, Wallet } from "lucide-react";
+import { ArrowLeft, Clock, DollarSign, Timer, Users, Wallet } from "lucide-react";
 import {
   createOperatingCostAction,
   deleteOperatingCostAction,
@@ -134,11 +135,15 @@ export default async function ConfiguracionPage() {
 
   return (
     <>
-      <h1 className="mb-6 text-xl font-bold text-gray-800">Configuración de precios</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-bold text-gray-800">Configuración de precios</h1>
+        <Link href="/panel/finanzas" className="flex items-center gap-1 text-sm font-semibold text-[#4e73df] hover:underline">
+          <ArrowLeft size={15} /> Volver a Finanzas
+        </Link>
+      </div>
       <p className="mb-6 max-w-2xl text-sm text-gray-500">
         Gastos operativos, sueldos y días/horas trabajados definen el Valor de Mano de Obra que usa la calculadora
-        (misma fórmula que la planilla de costos). Los márgenes y el promedio de minutos de la calculadora pública
-        se editan aparte, abajo.
+        (misma fórmula que la planilla de costos). Los márgenes se editan aparte, abajo.
       </p>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -204,17 +209,6 @@ export default async function ConfiguracionPage() {
               type="number"
               step="any"
               defaultValue={settings.retail_margin_pct}
-              required
-            />
-          </label>
-          <label className="text-xs text-gray-500">
-            Minutos MO promedio (web)
-            <input
-              className={`mt-1 ${inputClass}`}
-              name="avg_mo_minutes_web"
-              type="number"
-              step="any"
-              defaultValue={settings.avg_mo_minutes_web}
               required
             />
           </label>

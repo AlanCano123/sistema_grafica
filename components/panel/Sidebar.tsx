@@ -11,7 +11,7 @@ import {
   Layers,
   PiggyBank,
   Calculator,
-  Settings,
+  Users,
   Truck,
   FileText,
 } from "lucide-react";
@@ -20,10 +20,10 @@ const NAV_ITEMS = [
   { href: "/panel", label: "Resumen", icon: LayoutDashboard },
   { href: "/panel/cotizador", label: "Cotizador", icon: Calculator },
   { href: "/panel/pedidos", label: "Pedidos", icon: ClipboardList },
+  { href: "/panel/cuentas", label: "Cuentas corrientes", icon: Users },
   { href: "/panel/materiales", label: "Materiales", icon: Layers },
   { href: "/panel/proveedores", label: "Proveedores", icon: Truck },
   { href: "/panel/presupuestos", label: "Presupuestos", icon: FileText },
-  { href: "/panel/configuracion", label: "Configuración", icon: Settings },
   { href: "/panel/finanzas", label: "Finanzas", icon: PiggyBank },
   { href: "/panel/deudas", label: "Movimientos", icon: Wallet },
 ];

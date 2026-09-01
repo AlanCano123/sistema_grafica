@@ -94,18 +94,22 @@ export async function getPricingSettings(): Promise<PricingSettings> {
   }
 }
 
-export async function updatePricingSettings(data: Omit<PricingSettings, "id">): Promise<void> {
+// `avg_mo_minutes_web` no se edita más desde el panel (se sacó de
+// Configuración) — la columna queda con su valor de seed y la usa la
+// calculadora pública (app/(site)/page.tsx).
+export async function updatePricingSettings(
+  data: Omit<PricingSettings, "id" | "avg_mo_minutes_web">
+): Promise<void> {
   const { env } = await getCloudflareContext({ async: true });
   await env.DB.prepare(
-    "UPDATE pricing_settings SET working_days = ?, non_working_days = ?, daily_hours = ?, wholesale_margin_pct = ?, retail_margin_pct = ?, avg_mo_minutes_web = ? WHERE id = 1"
+    "UPDATE pricing_settings SET working_days = ?, non_working_days = ?, daily_hours = ?, wholesale_margin_pct = ?, retail_margin_pct = ? WHERE id = 1"
   )
     .bind(
       data.working_days,
       data.non_working_days,
       data.daily_hours,
       data.wholesale_margin_pct,
-      data.retail_margin_pct,
-      data.avg_mo_minutes_web
+      data.retail_margin_pct
     )
     .run();
 }

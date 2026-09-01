@@ -55,6 +55,7 @@ export async function updateOrderAction(formData: FormData) {
     items: itemsOf(formData),
   });
   revalidatePath("/panel/pedidos");
+  revalidatePath("/panel/cuentas");
 }
 
 export async function updateOrderStatusAction(formData: FormData) {
@@ -62,6 +63,7 @@ export async function updateOrderStatusAction(formData: FormData) {
   const id = requiredNumber(formData, "id", { min: 1 });
   await updateOrderStatus(id, statusOf(formData), tri(formData, "delivered_on_time"));
   revalidatePath("/panel/pedidos");
+  revalidatePath("/panel/cuentas");
 }
 
 export async function deleteOrderAction(formData: FormData) {
@@ -69,4 +71,5 @@ export async function deleteOrderAction(formData: FormData) {
   const id = requiredNumber(formData, "id", { min: 1 });
   await deleteOrder(id);
   revalidatePath("/panel/pedidos");
+  revalidatePath("/panel/cuentas");
 }
