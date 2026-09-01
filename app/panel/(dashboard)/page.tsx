@@ -1,4 +1,5 @@
-import { getDebts, getDebtBalance, getSales } from "@/lib/business";
+import { getDebts, getDebtBalance } from "@/lib/business";
+import { getOrders } from "@/lib/orders";
 import { formatPrice } from "@/lib/product-helpers";
 import { requireAdmin } from "@/lib/panel-auth";
 import StatCard from "@/components/StatCard";
@@ -12,22 +13,24 @@ export const dynamic = "force-dynamic";
 
 export default async function PanelPage() {
   await requireAdmin();
-  const [debts, sales] = await Promise.all([getDebts(), getSales()]);
+  const [debts, orders] = await Promise.all([getDebts(), getOrders()]);
 
   const receivables = debts.filter((d) => d.direction === "receivable" && d.status === "pending");
   const payables = debts.filter((d) => d.direction === "payable" && d.status === "pending");
 
-  // Saldo (monto - pagado), no el monto bruto — un pago parcial ya
-  // cargado no debe seguir contando entero acá.
   const totalReceivable = receivables.reduce((sum, d) => sum + getDebtBalance(d), 0);
   const totalPayable = payables.reduce((sum, d) => sum + getDebtBalance(d), 0);
-  const totalSales = sales.reduce((sum, s) => sum + s.amount, 0);
   const balance = totalReceivable - totalPayable;
 
-  // Ventas agrupadas por fecha para el gráfico de área, orden cronológico.
+  // "Ventas" = pedidos terminados y pagados, por fecha de pago.
+  const paidOrders = orders.filter((o) => o.status === "terminado_pagado");
+  const totalSales = paidOrders.reduce((sum, o) => sum + o.total_amount, 0);
+
   const byDate = new Map<string, number>();
-  for (const sale of sales) {
-    byDate.set(sale.sale_date, (byDate.get(sale.sale_date) ?? 0) + sale.amount);
+  for (const o of paidOrders) {
+    const day = (o.paid_at ?? o.created_at ?? "").slice(0, 10);
+    if (!day) continue;
+    byDate.set(day, (byDate.get(day) ?? 0) + o.total_amount);
   }
   const sortedDates = Array.from(byDate.keys()).sort();
   const chartLabels = sortedDates.map((d) => new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }));
@@ -43,7 +46,7 @@ export default async function PanelPage() {
         <StatCard label="Cobros pendientes" value={formatPrice(totalReceivable)} accent="green" icon={TrendingUp} sublabel={`${receivables.length} pendientes`} />
         <StatCard label="Pagos pendientes" value={formatPrice(totalPayable)} accent="red" icon={TrendingDown} sublabel={`${payables.length} pendientes`} />
         <StatCard label="Balance" value={formatPrice(balance)} accent={balance >= 0 ? "blue" : "yellow"} icon={Wallet} sublabel="Cobros − pagos pendientes" />
-        <StatCard label="Ventas totales" value={formatPrice(totalSales)} accent="yellow" icon={DollarSign} sublabel={`${sales.length} ventas`} />
+        <StatCard label="Ventas totales" value={formatPrice(totalSales)} accent="yellow" icon={DollarSign} sublabel={`${paidOrders.length} pedidos pagados`} />
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">

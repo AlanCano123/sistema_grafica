@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getSales, SERVICE_TYPES } from "@/lib/business";
+import { serviceTypeLabel } from "@/lib/service-types";
 import { getBalance, getOrderCost, getOrders, type Order } from "@/lib/orders";
+import { parseItems } from "@/lib/job-items";
 import { getMaterials, getOperatingCosts, getPricingSettings } from "@/lib/materials-db";
 import { computeMoRates, type Material } from "@/lib/materials";
 import { formatPrice } from "@/lib/product-helpers";
@@ -14,14 +15,15 @@ export const dynamic = "force-dynamic";
 
 const PALETTE = ["#4e73df", "#1cc88a", "#f6c23e", "#e74a3b", "#36b9cc", "#858796", "#5a5c69", "#fd7e14"];
 
-// Por default, ventas/pedidos de los últimos 90 días (+ pedidos activos o
-// con saldo, sin importar la fecha — ver getOrders). "Saldos pendientes de
-// pago" nunca se ve afectado por esto (ya filtra por saldo > 0, que
-// getOrders siempre incluye). "Ver historial completo" saca el filtro.
 const HISTORY_DAYS = 90;
 
 function sinceDate(): string {
   return new Date(Date.now() - HISTORY_DAYS * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+// Fecha de "venta" de un pedido pagado = paid_at (cae a 'YYYY-MM-DD').
+function paidDate(order: Order): string {
+  return (order.paid_at ?? order.created_at ?? "").slice(0, 10);
 }
 
 interface PageProps {
@@ -32,8 +34,7 @@ export default async function FinanzasPage({ searchParams }: PageProps) {
   await requireAdmin();
   const { historial } = await searchParams;
   const verTodo = historial === "todo";
-  const [sales, orders, materials, settings, costs] = await Promise.all([
-    getSales(verTodo ? undefined : sinceDate()),
+  const [orders, materials, settings, costs] = await Promise.all([
     getOrders(verTodo ? undefined : sinceDate()),
     getMaterials(),
     getPricingSettings(),
@@ -42,56 +43,62 @@ export default async function FinanzasPage({ searchParams }: PageProps) {
   const moPerMinute = computeMoRates(settings, costs).moPerMinute;
   const materialsById = new Map<number, Material>(materials.map((m) => [m.id, m]));
 
-  // --- StatCards: ventas día/semana/mes + ticket promedio -----------------
-  const today = new Date().toISOString().slice(0, 10);
-  const sevenDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  // --- Pedidos terminados y pagados = "ventas" -----------------------------
+  const paidOrders = orders.filter((o) => o.status === "terminado_pagado");
+
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const sevenDaysAgo = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const currentMonth = today.slice(0, 7); // 'YYYY-MM'
 
-  const salesToday = sales.filter((s) => s.sale_date === today).reduce((sum, s) => sum + s.amount, 0);
-  const salesWeek = sales.filter((s) => s.sale_date >= sevenDaysAgo).reduce((sum, s) => sum + s.amount, 0);
-  const salesMonth = sales.filter((s) => s.sale_date.startsWith(currentMonth)).reduce((sum, s) => sum + s.amount, 0);
-  const avgTicket = sales.length > 0 ? sales.reduce((sum, s) => sum + s.amount, 0) / sales.length : 0;
+  const salesToday = paidOrders.filter((o) => paidDate(o) === today).reduce((sum, o) => sum + o.total_amount, 0);
+  const salesWeek = paidOrders.filter((o) => paidDate(o) >= sevenDaysAgo).reduce((sum, o) => sum + o.total_amount, 0);
+  const salesMonth = paidOrders.filter((o) => paidDate(o).startsWith(currentMonth)).reduce((sum, o) => sum + o.total_amount, 0);
+  const avgTicket = paidOrders.length > 0 ? paidOrders.reduce((sum, o) => sum + o.total_amount, 0) / paidOrders.length : 0;
 
-  // --- Ventas por tipo de servicio ----------------------------------------
-  const totalSalesAmount = sales.reduce((sum, s) => sum + s.amount, 0);
+  // --- Ventas por tipo de servicio (items de pedidos pagados) -------------
   const byServiceType = new Map<string, number>();
-  for (const s of sales) {
-    const key = s.service_type ?? "sin_especificar";
-    byServiceType.set(key, (byServiceType.get(key) ?? 0) + s.amount);
+  for (const o of paidOrders) {
+    for (const it of parseItems(o.items)) {
+      const key = it.serviceType ?? "sin_especificar";
+      byServiceType.set(key, (byServiceType.get(key) ?? 0) + it.quantity * it.unitPrice);
+    }
   }
-  const serviceTypeLabel = (value: string) =>
-    value === "sin_especificar" ? "Sin especificar" : (SERVICE_TYPES.find((t) => t.value === value)?.label ?? value);
+  const totalPaidItems = Array.from(byServiceType.values()).reduce((a, b) => a + b, 0);
   const salesByType = Array.from(byServiceType.entries())
     .map(([value, amount]) => ({
-      label: serviceTypeLabel(value),
+      label: serviceTypeLabel(value === "sin_especificar" ? null : value),
       amount,
-      pct: totalSalesAmount > 0 ? Math.round((amount / totalSalesAmount) * 100) : 0,
+      pct: totalPaidItems > 0 ? Math.round((amount / totalPaidItems) * 100) : 0,
     }))
     .sort((a, b) => b.amount - a.amount);
 
-  // --- Material más solicitado ---------------------------------------------
-  const ordersWithMaterial = orders.filter((o) => o.material_id !== null);
+  // --- Material más solicitado (items de todos los pedidos) --------------
   const byMaterial = new Map<number, number>();
-  for (const o of ordersWithMaterial) {
-    byMaterial.set(o.material_id as number, (byMaterial.get(o.material_id as number) ?? 0) + 1);
+  for (const o of orders) {
+    for (const it of parseItems(o.items)) {
+      if (it.materialId === null) continue;
+      byMaterial.set(it.materialId, (byMaterial.get(it.materialId) ?? 0) + 1);
+    }
   }
+  const totalMaterialItems = Array.from(byMaterial.values()).reduce((a, b) => a + b, 0);
   const materialDemand = Array.from(byMaterial.entries())
     .map(([materialId, count]) => ({
       material: materialsById.get(materialId)?.name ?? `Material #${materialId}`,
       count,
-      pct: ordersWithMaterial.length > 0 ? Math.round((count / ordersWithMaterial.length) * 100) : 0,
+      pct: totalMaterialItems > 0 ? Math.round((count / totalMaterialItems) * 100) : 0,
     }))
     .sort((a, b) => b.count - a.count);
 
-  // --- Margen neto por proyecto --------------------------------------------
+  // --- Margen neto por proyecto -----------------------------------------
   const projectMargins = orders
     .map((o) => {
-      const result = getOrderCost(o, materialsById.get(o.material_id ?? -1), moPerMinute);
+      const result = getOrderCost(o, materialsById, moPerMinute);
       return result ? { order: o, ...result } : null;
     })
     .filter((x): x is { order: Order; cost: number; margin: number; marginPct: number } => x !== null);
 
-  // --- Saldos pendientes de pago (misma data que Cuentas corrientes) ------
+  // --- Saldos pendientes de pago (misma data que Cuentas corrientes) ----
   const pendingBalances = orders
     .map((o) => ({ order: o, balance: getBalance(o) }))
     .filter((x) => x.balance > 0);
@@ -108,6 +115,10 @@ export default async function FinanzasPage({ searchParams }: PageProps) {
         </Link>
       </div>
 
+      <p className="mb-4 text-xs text-gray-400">
+        &quot;Ventas&quot; = pedidos en estado <strong>Terminado y pagado</strong>, por su fecha de pago.
+      </p>
+
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Ventas del día" value={formatPrice(salesToday)} accent="blue" icon={DollarSign} />
         <StatCard label="Ventas de la semana" value={formatPrice(salesWeek)} accent="blue" icon={DollarSign} sublabel="Últimos 7 días" />
@@ -117,7 +128,7 @@ export default async function FinanzasPage({ searchParams }: PageProps) {
           value={formatPrice(avgTicket)}
           accent="yellow"
           icon={Receipt}
-          sublabel={`${sales.length} ventas ${verTodo ? "en total" : `(últimos ${HISTORY_DAYS} días)`}`}
+          sublabel={`${paidOrders.length} pedidos pagados ${verTodo ? "en total" : `(últimos ${HISTORY_DAYS} días)`}`}
         />
       </div>
 
@@ -125,7 +136,7 @@ export default async function FinanzasPage({ searchParams }: PageProps) {
         <div className="rounded border border-gray-100 bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-sm font-bold text-[#4e73df]">Ventas por tipo de servicio</h2>
           {salesByType.length === 0 ? (
-            <p className="text-sm text-gray-400">Todavía no hay ventas cargadas.</p>
+            <p className="text-sm text-gray-400">Todavía no hay pedidos pagados.</p>
           ) : (
             <div className="flex flex-col gap-4">
               {salesByType.map((s, i) => (
@@ -138,13 +149,11 @@ export default async function FinanzasPage({ searchParams }: PageProps) {
         <div className="rounded border border-gray-100 bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-sm font-bold text-[#4e73df]">Material más solicitado</h2>
           {materialDemand.length === 0 ? (
-            <p className="text-sm text-gray-400">
-              Ningún pedido tiene material cargado todavía — se completa opcionalmente al cargar el pedido.
-            </p>
+            <p className="text-sm text-gray-400">Ningún item de pedido tiene material cargado todavía.</p>
           ) : (
             <div className="flex flex-col gap-4">
               {materialDemand.map((m, i) => (
-                <ProgressBar key={m.material} label={m.material} pct={m.pct} color={PALETTE[i % PALETTE.length]} valueLabel={`${m.count} pedido(s) (${m.pct}%)`} />
+                <ProgressBar key={m.material} label={m.material} pct={m.pct} color={PALETTE[i % PALETTE.length]} valueLabel={`${m.count} item(s) (${m.pct}%)`} />
               ))}
             </div>
           )}
@@ -155,12 +164,12 @@ export default async function FinanzasPage({ searchParams }: PageProps) {
         <div className="border-b border-gray-100 px-5 py-4">
           <h2 className="text-sm font-bold text-[#4e73df]">Margen neto por proyecto</h2>
           <p className="mt-1 text-xs text-gray-400">
-            Costo = material + mano de obra, con las tarifas/costos actuales (no es una foto histórica congelada).
+            Costo = material + mano de obra de cada item, con las tarifas/costos actuales (no es una foto histórica).
           </p>
         </div>
         {projectMargins.length === 0 ? (
           <p className="px-5 py-6 text-sm text-gray-400">
-            Ningún pedido tiene material, medidas y minutos de MO cargados todavía.
+            Ningún pedido tiene items con material, medidas y minutos cargados todavía.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -210,7 +219,7 @@ export default async function FinanzasPage({ searchParams }: PageProps) {
                 <div key={order.id} className="px-5 py-3">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium text-gray-800">
-                      {order.client_name} <span className="text-gray-400">— #{order.order_number}</span>
+                      {order.client_name} <span className="text-gray-400">— #{order.id}</span>
                     </p>
                     <span className="text-sm font-bold text-[#e74a3b]">Debe {formatPrice(balance)}</span>
                   </div>

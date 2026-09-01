@@ -12,9 +12,9 @@ export default async function PresupuestosPage() {
     <>
       <h1 className="mb-2 text-xl font-bold text-gray-800">Presupuestos</h1>
       <p className="mb-6 max-w-2xl text-sm text-gray-500">
-        Se guardan solos al descargar un Presupuesto desde el Cotizador. Cuando el cliente confirma, marcalo{" "}
-        <strong>Aceptado</strong> y usá &quot;Convertir a remito&quot; — mismo cliente y artículos, sin cargar nada
-        de nuevo.
+        Se crean desde el <strong>Cotizador</strong> (botón &quot;Crear presupuesto&quot;). Cuando el cliente confirma,
+        marcalo <strong>Aceptado</strong> y usá &quot;Convertir a pedido&quot; (o &quot;Remito PDF&quot;) — mismo
+        cliente y artículos, sin cargar nada de nuevo.
       </p>
 
       <div className="rounded border border-gray-100 bg-white shadow-sm">

@@ -6,7 +6,6 @@ import { ADMIN_ONLY_PATHS, USER_HOME_PATH, type Role } from "@/lib/panel-roles";
 import {
   LayoutDashboard,
   Wallet,
-  ShoppingCart,
   ExternalLink,
   ClipboardList,
   Layers,
@@ -19,15 +18,14 @@ import {
 
 const NAV_ITEMS = [
   { href: "/panel", label: "Resumen", icon: LayoutDashboard },
+  { href: "/panel/cotizador", label: "Cotizador", icon: Calculator },
   { href: "/panel/pedidos", label: "Pedidos", icon: ClipboardList },
   { href: "/panel/materiales", label: "Materiales", icon: Layers },
   { href: "/panel/proveedores", label: "Proveedores", icon: Truck },
-  { href: "/panel/cotizador", label: "Cotizador", icon: Calculator },
   { href: "/panel/presupuestos", label: "Presupuestos", icon: FileText },
   { href: "/panel/configuracion", label: "Configuración", icon: Settings },
   { href: "/panel/finanzas", label: "Finanzas", icon: PiggyBank },
   { href: "/panel/deudas", label: "Movimientos", icon: Wallet },
-  { href: "/panel/ventas", label: "Ventas", icon: ShoppingCart },
 ];
 
 // Abajo de "md" es un drawer off-canvas (PanelChrome maneja el estado

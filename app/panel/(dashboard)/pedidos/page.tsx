@@ -9,12 +9,11 @@ import {
   type Order,
   type OrderStatus,
 } from "@/lib/orders";
-import { getMaterials } from "@/lib/materials-db";
-import type { Material } from "@/lib/materials";
+import { parseItems } from "@/lib/job-items";
 import { formatPrice } from "@/lib/product-helpers";
 import StatCard from "@/components/StatCard";
-import { Clock, CheckCircle2, AlertTriangle, Wallet } from "lucide-react";
-import { createOrderAction, deleteOrderAction, updateOrderAction, updateOrderStatusAction } from "./actions";
+import { Clock, CheckCircle2, AlertTriangle, Wallet, Plus } from "lucide-react";
+import { deleteOrderAction, updateOrderAction, updateOrderStatusAction } from "./actions";
 
 // D1 solo existe en tiempo real del Worker.
 export const dynamic = "force-dynamic";
@@ -26,17 +25,26 @@ const COLUMNS: { status: OrderStatus; title: string; accent: string }[] = [
   { status: "pendiente", title: "Pendientes / Aprobados", accent: "#f6c23e" },
   { status: "produccion", title: "En producción", accent: "#4e73df" },
   { status: "terminado", title: "Terminados", accent: "#1cc88a" },
+  { status: "terminado_pagado", title: "Terminado y pagado", accent: "#13855c" },
 ];
 
-// Por default solo se traen pedidos de los últimos 90 días (+ los que
-// sigan activos o con saldo, sin importar la fecha — ver getOrders en
-// lib/orders.ts). "Ver historial completo" saca el filtro. Sin esto, en
-// unos años la tabla `orders` iba a leerse entera en cada vista de página,
-// acercándose de más al límite gratis de lecturas de D1.
+const STATUS_LABELS: Record<OrderStatus, string> = {
+  pendiente: "Pendiente",
+  produccion: "En producción",
+  terminado: "Terminado",
+  terminado_pagado: "Terminado y pagado",
+};
+
 const HISTORY_DAYS = 90;
 
 function sinceDate(): string {
   return new Date(Date.now() - HISTORY_DAYS * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function itemsSummary(order: Order): string[] {
+  return parseItems(order.items).map(
+    (it) => `${it.quantity || 1}× ${it.description.trim() || "(sin descripción)"}`
+  );
 }
 
 interface PageProps {
@@ -46,18 +54,18 @@ interface PageProps {
 export default async function PedidosPage({ searchParams }: PageProps) {
   const { view, historial } = await searchParams;
   const verTodo = historial === "todo";
-  const [orders, materials] = await Promise.all([getOrders(verTodo ? undefined : sinceDate()), getMaterials()]);
+  const orders = await getOrders(verTodo ? undefined : sinceDate());
 
   return view === "cuentas" ? (
     <CuentasCorrientes orders={orders} verTodo={verTodo} />
   ) : (
-    <Kanban orders={orders} materials={materials} verTodo={verTodo} />
+    <Kanban orders={orders} verTodo={verTodo} />
   );
 }
 
 // --- Vista Kanban --------------------------------------------------------
 
-function Kanban({ orders, materials, verTodo }: { orders: Order[]; materials: Material[]; verTodo: boolean }) {
+function Kanban({ orders, verTodo }: { orders: Order[]; verTodo: boolean }) {
   const onTime = getOnTimeStats(orders);
   const enCola = getOrdersByStatus(orders, "pendiente").length + getOrdersByStatus(orders, "produccion").length;
 
@@ -75,6 +83,12 @@ function Kanban({ orders, materials, verTodo }: { orders: Order[]; materials: Ma
           <Link href="/panel/pedidos?view=cuentas" className="text-sm font-semibold text-[#4e73df] hover:underline">
             Ver cuentas corrientes →
           </Link>
+          <Link
+            href="/panel/cotizador"
+            className="flex items-center gap-1 rounded bg-[#1cc88a] px-3 py-1.5 text-sm font-semibold text-white hover:bg-[#17a674]"
+          >
+            <Plus size={15} /> Cargar pedido
+          </Link>
         </div>
       </div>
 
@@ -90,85 +104,7 @@ function Kanban({ orders, materials, verTodo }: { orders: Order[]; materials: Ma
         <StatCard label="En cola" value={String(enCola)} accent="blue" icon={Clock} sublabel="Pendientes + en producción" />
       </div>
 
-      <div className="mb-6 rounded border border-gray-100 bg-white p-5 shadow-sm">
-        <h2 className="mb-4 text-sm font-bold text-[#4e73df]">Cargar pedido</h2>
-        <form action={createOrderAction} className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <label className="text-xs text-gray-500">
-            Nº de orden
-            <input className={`mt-1 ${inputClass}`} name="order_number" placeholder="Ej: 1042" required />
-          </label>
-          <label className="text-xs text-gray-500">
-            Nº de expediente
-            <input className={`mt-1 ${inputClass}`} name="file_number" placeholder="Opcional" />
-          </label>
-          <label className="text-xs text-gray-500">
-            Cliente
-            <input className={`mt-1 ${inputClass}`} name="client_name" placeholder="Ej: Kiosco Don Mario" required />
-          </label>
-          <label className="text-xs text-gray-500">
-            Nombre del pedido / placa
-            <input className={`mt-1 ${inputClass}`} name="job_name" placeholder="Ej: Cartel corpóreo MDF" required />
-          </label>
-          <label className="text-xs text-gray-500">
-            Estado
-            <select className={`mt-1 ${inputClass}`} name="status" defaultValue="pendiente">
-              <option value="pendiente">Pendiente</option>
-              <option value="produccion">En producción</option>
-              <option value="terminado">Terminado</option>
-            </select>
-          </label>
-          <label className="text-xs text-gray-500">
-            Fecha a entregar
-            <input className={`mt-1 ${inputClass}`} name="due_date" type="date" />
-          </label>
-          <label className="text-xs text-gray-500">
-            Total ($)
-            <input className={`mt-1 ${inputClass}`} name="total_amount" type="number" step="any" placeholder="0" />
-          </label>
-          <label className="text-xs text-gray-500">
-            Seña ($)
-            <input className={`mt-1 ${inputClass}`} name="deposit_amount" type="number" step="any" placeholder="0" />
-          </label>
-          <label className="col-span-2 flex items-center gap-2 self-end pb-1.5 text-xs text-gray-500 md:col-span-1">
-            <input type="checkbox" name="has_deposit" value="1" className="h-4 w-4" />
-            Deja seña
-          </label>
-          <label className="text-xs text-gray-500">
-            Material (opcional)
-            <select className={`mt-1 ${inputClass}`} name="material_id" defaultValue="">
-              <option value="">Sin especificar</option>
-              {materials.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-xs text-gray-500">
-            Ancho (mm)
-            <input className={`mt-1 ${inputClass}`} name="width_mm" type="number" step="any" placeholder="Opcional" />
-          </label>
-          <label className="text-xs text-gray-500">
-            Largo (mm)
-            <input className={`mt-1 ${inputClass}`} name="length_mm" type="number" step="any" placeholder="Opcional" />
-          </label>
-          <label className="text-xs text-gray-500">
-            Minutos MO
-            <input className={`mt-1 ${inputClass}`} name="mo_minutes" type="number" step="any" placeholder="Opcional" />
-          </label>
-          <p className="col-span-2 text-xs text-gray-400 md:col-span-4">
-            Material/medidas/minutos son opcionales — sin ellos el pedido no calcula costo/margen en Finanzas, pero
-            se carga igual.
-          </p>
-          <div className="col-span-2 flex items-end md:col-span-4">
-            <button type="submit" className="rounded bg-[#1cc88a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#17a674]">
-              Cargar pedido
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
         {COLUMNS.map(({ status, title, accent }) => {
           const columnOrders = getOrdersByStatus(orders, status);
           return (
@@ -185,8 +121,6 @@ function Kanban({ orders, materials, verTodo }: { orders: Order[]; materials: Ma
                 {columnOrders.length === 0 ? (
                   <p className="px-4 py-6 text-center text-sm text-gray-400">Nada acá.</p>
                 ) : (
-                  // mismo motivo que en CuentaRow: el <select> de abajo es
-                  // uncontrolled (defaultValue).
                   columnOrders.map((order) => <KanbanCard key={JSON.stringify(order)} order={order} />)
                 )}
               </div>
@@ -201,12 +135,14 @@ function Kanban({ orders, materials, verTodo }: { orders: Order[]; materials: Ma
 function KanbanCard({ order }: { order: Order }) {
   const balance = getBalance(order);
   const overdue = isOverdue(order);
+  const done = order.status === "terminado" || order.status === "terminado_pagado";
   const formId = `status-${order.id}`;
+  const items = itemsSummary(order);
   return (
     <div className="px-4 py-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-gray-400">
-          #{order.order_number} · {budgetNumber(order)}
+          #{order.id} · {budgetNumber(order)}
         </span>
         {order.due_date && (
           <span className={`text-xs ${overdue ? "font-bold text-[#e74a3b]" : "text-gray-400"}`}>
@@ -216,6 +152,15 @@ function KanbanCard({ order }: { order: Order }) {
       </div>
       <p className="mt-1 text-sm font-medium text-gray-800">{order.client_name}</p>
       <p className="text-xs text-gray-500">{order.job_name}</p>
+      {items.length > 0 && (
+        <ul className="mt-1 text-[11px] text-gray-400">
+          {items.slice(0, 4).map((line, i) => (
+            <li key={i}>· {line}</li>
+          ))}
+          {items.length > 4 && <li>· +{items.length - 4} más</li>}
+        </ul>
+      )}
+      <p className="mt-1 text-xs font-semibold text-gray-600">Total {formatPrice(order.total_amount)}</p>
       <div className="mt-1 flex flex-wrap gap-1">
         {balance > 0 && (
           <span className="inline-block rounded-full bg-[#e74a3b]/10 px-2 py-0.5 text-[10px] font-bold text-[#e74a3b]">
@@ -232,15 +177,17 @@ function KanbanCard({ order }: { order: Order }) {
         <input type="hidden" name="id" value={order.id} />
         <div className="flex items-center gap-2">
           <select name="status" defaultValue={order.status} className="rounded border border-gray-200 px-2 py-1 text-xs">
-            <option value="pendiente">Pendiente</option>
-            <option value="produccion">En producción</option>
-            <option value="terminado">Terminado</option>
+            {COLUMNS.map((c) => (
+              <option key={c.status} value={c.status}>
+                {STATUS_LABELS[c.status]}
+              </option>
+            ))}
           </select>
           <button type="submit" className="rounded bg-[#4e73df] px-2 py-1 text-xs font-semibold text-white hover:bg-[#3d5cc4]">
             Guardar
           </button>
         </div>
-        {order.status === "terminado" && (
+        {done && (
           <label className="flex items-center gap-1.5 text-xs text-gray-500">
             ¿A tiempo?
             <select
@@ -259,13 +206,25 @@ function KanbanCard({ order }: { order: Order }) {
   );
 }
 
-// --- Vista Cuentas corrientes ---------------------------------------------
+// --- Vista Cuentas corrientes -------------------------------------------
 
 function CuentasCorrientes({ orders, verTodo }: { orders: Order[]; verTodo: boolean }) {
-  const totalPendiente = orders.reduce((sum, o) => {
-    const balance = getBalance(o);
-    return balance > 0 ? sum + balance : sum;
-  }, 0);
+  // Agrupado por nombre de cliente.
+  const byClient = new Map<string, Order[]>();
+  for (const o of orders) {
+    const list = byClient.get(o.client_name) ?? [];
+    list.push(o);
+    byClient.set(o.client_name, list);
+  }
+  const clients = Array.from(byClient.entries())
+    .map(([name, list]) => ({
+      name,
+      orders: list,
+      totalDebt: list.reduce((sum, o) => sum + Math.max(getBalance(o), 0), 0),
+    }))
+    .sort((a, b) => b.totalDebt - a.totalDebt);
+
+  const totalPendiente = clients.reduce((sum, c) => sum + c.totalDebt, 0);
 
   return (
     <>
@@ -284,141 +243,127 @@ function CuentasCorrientes({ orders, verTodo }: { orders: Order[]; verTodo: bool
         </div>
       </div>
       <p className="mb-6 max-w-2xl text-sm text-gray-500">
-        Quién debe qué sobre sus pedidos — no confundir con Movimientos (esa es con proveedores/terceros).
+        Deuda de cada cliente sobre sus pedidos — no confundir con Movimientos (esa es con proveedores/terceros).
       </p>
 
       <div className="mb-6 grid grid-cols-1 sm:grid-cols-3">
         <StatCard label="Total pendiente de cobro" value={formatPrice(totalPendiente)} accent="red" icon={Wallet} sublabel="Suma de saldos > 0" />
       </div>
 
-      <div className="rounded border border-gray-100 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full table-fixed text-sm">
-            <colgroup>
-              <col className="w-[9%]" />
-              <col className="w-[10%]" />
-              <col className="w-[14%]" />
-              <col className="w-[16%]" />
-              <col className="w-[9%]" />
-              <col className="w-[11%]" />
-              <col className="w-[13%]" />
-              <col className="w-[8%]" />
-              <col className="w-[8%]" />
-              <col className="w-[10%]" />
-            </colgroup>
-            <thead>
-              <tr className="bg-gray-50 text-left text-xs tracking-wide text-gray-500 uppercase">
-                <th className="px-3 py-3">Nº orden</th>
-                <th className="px-3 py-3">Nº expediente</th>
-                <th className="px-3 py-3">Cliente</th>
-                <th className="px-3 py-3">Nombre de placa</th>
-                <th className="px-3 py-3">Estado</th>
-                <th className="px-3 py-3">Total ($)</th>
-                <th className="px-3 py-3">Seña ($)</th>
-                <th className="px-3 py-3 text-right">Saldo</th>
-                <th className="px-3 py-3">Formulario</th>
-                <th className="px-3 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.length === 0 ? (
-                <tr>
-                  <td colSpan={10} className="px-3 py-6 text-center text-sm text-gray-400">
-                    No hay pedidos cargados todavía.
-                  </td>
-                </tr>
-              ) : (
-                // key incluye el contenido: los inputs son "uncontrolled"
-                // (defaultValue) — sin esto, tras "Guardar" la fila queda
-                // visualmente con el valor viejo aunque la base ya se
-                // actualizó (React no resetea defaultValue en un
-                // re-render normal, solo al montar).
-                orders.map((o) => <CuentaRow key={JSON.stringify(o)} order={o} />)
-              )}
-            </tbody>
-          </table>
+      {clients.length === 0 ? (
+        <p className="rounded border border-gray-100 bg-white p-5 text-sm text-gray-400 shadow-sm">
+          No hay pedidos cargados todavía.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {clients.map((c) => (
+            <details key={c.name} className="rounded border border-gray-100 bg-white shadow-sm">
+              <summary className="flex cursor-pointer items-center justify-between px-5 py-3 text-sm">
+                <span className="font-bold text-gray-800">{c.name}</span>
+                <span className="flex items-center gap-4">
+                  <span className="text-xs text-gray-400">{c.orders.length} pedido(s)</span>
+                  <span className={`font-bold ${c.totalDebt > 0 ? "text-[#e74a3b]" : "text-[#1cc88a]"}`}>
+                    {c.totalDebt > 0 ? `Debe ${formatPrice(c.totalDebt)}` : "Al día"}
+                  </span>
+                </span>
+              </summary>
+              <div className="flex flex-col divide-y divide-gray-100 border-t border-gray-100">
+                {c.orders.map((o) => (
+                  <CuentaOrderCard key={JSON.stringify(o)} order={o} />
+                ))}
+              </div>
+            </details>
+          ))}
         </div>
-      </div>
-
-      {/* Forms reales, fuera de la tabla — <form> no puede envolver un <tr>
-          (HTML inválido, el browser lo descarta). Cada fila se asocia acá
-          vía el atributo `form` (mismo patrón que Materiales/Configuración). */}
-      {orders.map((o) => (
-        <form key={o.id} id={`order-${o.id}`} action={updateOrderAction} />
-      ))}
+      )}
     </>
   );
 }
 
-function CuentaRow({ order }: { order: Order }) {
-  const formId = `order-${order.id}`;
+function CuentaOrderCard({ order }: { order: Order }) {
   const balance = getBalance(order);
+  const items = parseItems(order.items);
   return (
-    <tr className="border-t border-gray-100 hover:bg-gray-50">
-      <td className="px-3 py-2">
-        <input form={formId} type="hidden" name="id" value={order.id} />
-        <input form={formId} className={inputClass} name="order_number" defaultValue={order.order_number} required />
-      </td>
-      <td className="px-3 py-2">
-        <input form={formId} className={inputClass} name="file_number" defaultValue={order.file_number ?? ""} />
-      </td>
-      <td className="px-3 py-2">
-        <input form={formId} className={inputClass} name="client_name" defaultValue={order.client_name} required />
-      </td>
-      <td className="px-3 py-2">
-        <input form={formId} className={inputClass} name="job_name" defaultValue={order.job_name} required />
-      </td>
-      <td className="px-3 py-2">
-        <select form={formId} name="status" defaultValue={order.status} className={inputClass}>
-          <option value="pendiente">Pendiente</option>
-          <option value="produccion">En producción</option>
-          <option value="terminado">Terminado</option>
-        </select>
-      </td>
-      <td className="px-3 py-2">
-        <input form={formId} className={inputClass} name="total_amount" type="number" step="any" defaultValue={order.total_amount} />
-      </td>
-      <td className="px-3 py-2">
-        <div className="flex items-center gap-1.5">
-          <input form={formId} type="checkbox" name="has_deposit" value="1" defaultChecked={order.has_deposit === 1} className="h-4 w-4 shrink-0" />
-          <input form={formId} className={inputClass} name="deposit_amount" type="number" step="any" defaultValue={order.deposit_amount} />
-        </div>
-      </td>
-      <td className="px-3 py-2 text-right text-xs font-bold whitespace-nowrap text-gray-700">{formatPrice(balance)}</td>
-      <td className="px-3 py-2">
-        {/* Material/medidas/minutos no tienen su propio control acá (se
-            sacó por espacio) — se cargan/editan solo desde "Cargar pedido"
-            en el Kanban. Estos hidden pasan el valor actual sin cambios,
-            así guardar desde acá no los borra. */}
-        <input form={formId} type="hidden" name="material_id" value={order.material_id ?? ""} />
-        <input form={formId} type="hidden" name="width_mm" value={order.width_mm ?? ""} />
-        <input form={formId} type="hidden" name="length_mm" value={order.length_mm ?? ""} />
-        <input form={formId} type="hidden" name="mo_minutes" value={order.mo_minutes ?? ""} />
-        <select form={formId} name="form_paid" defaultValue={order.form_paid === null ? "" : String(order.form_paid)} className={inputClass}>
-          <option value="">—</option>
-          <option value="1">Sí</option>
-          <option value="0">No</option>
-        </select>
-      </td>
-      <td className="px-3 py-2">
-        {/* delivered_on_time no tiene su propio control visible acá — se
-            guarda como está (o null) salvo que se agregue más adelante;
-            no es parte de lo pedido para esta vista. */}
-        <input form={formId} type="hidden" name="delivered_on_time" value={order.delivered_on_time === null ? "" : String(order.delivered_on_time)} />
-        <div className="flex flex-col gap-1">
-          <button form={formId} type="submit" className="w-full rounded bg-[#4e73df] px-2 py-1 text-xs font-semibold text-white hover:bg-[#3d5cc4]">
+    <div className="px-5 py-4">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs font-bold text-gray-400">
+          #{order.id} · {budgetNumber(order)} · {STATUS_LABELS[order.status]}
+        </span>
+        <span className={`text-sm font-bold ${balance > 0 ? "text-[#e74a3b]" : "text-gray-600"}`}>
+          Saldo {formatPrice(balance)}
+        </span>
+      </div>
+
+      {items.length > 0 && (
+        <ul className="mb-3 text-xs text-gray-500">
+          {items.map((it, i) => (
+            <li key={i}>
+              · {it.quantity || 1}× {it.description.trim() || "(sin descripción)"} — {formatPrice(it.quantity * it.unitPrice)}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form action={updateOrderAction} className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <input type="hidden" name="id" value={order.id} />
+        <input type="hidden" name="items" value={order.items} />
+        <input type="hidden" name="delivered_on_time" value={order.delivered_on_time === null ? "" : String(order.delivered_on_time)} />
+        <label className="text-xs text-gray-500">
+          Cliente
+          <input className={`mt-1 ${inputClass}`} name="client_name" defaultValue={order.client_name} required />
+        </label>
+        <label className="text-xs text-gray-500">
+          Nombre del pedido
+          <input className={`mt-1 ${inputClass}`} name="job_name" defaultValue={order.job_name} required />
+        </label>
+        <label className="text-xs text-gray-500">
+          Nº expediente
+          <input className={`mt-1 ${inputClass}`} name="file_number" defaultValue={order.file_number ?? ""} />
+        </label>
+        <label className="text-xs text-gray-500">
+          Fecha a entregar
+          <input className={`mt-1 ${inputClass}`} name="due_date" type="date" defaultValue={order.due_date ?? ""} />
+        </label>
+        <label className="text-xs text-gray-500">
+          Estado
+          <select className={`mt-1 ${inputClass}`} name="status" defaultValue={order.status}>
+            {COLUMNS.map((c) => (
+              <option key={c.status} value={c.status}>
+                {STATUS_LABELS[c.status]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-2 self-end pb-2 text-xs text-gray-500">
+          <input type="checkbox" name="has_deposit" value="1" defaultChecked={order.has_deposit === 1} className="h-4 w-4" />
+          Deja seña
+        </label>
+        <label className="text-xs text-gray-500">
+          Seña ($)
+          <input className={`mt-1 ${inputClass}`} name="deposit_amount" type="number" step="any" defaultValue={order.deposit_amount} />
+        </label>
+        <label className="text-xs text-gray-500">
+          Formulario pago
+          <select className={`mt-1 ${inputClass}`} name="form_paid" defaultValue={order.form_paid === null ? "" : String(order.form_paid)}>
+            <option value="">—</option>
+            <option value="1">Sí</option>
+            <option value="0">No</option>
+          </select>
+        </label>
+        <div className="col-span-2 flex items-end gap-2 md:col-span-4">
+          <button type="submit" className="rounded bg-[#4e73df] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#3d5cc4]">
             Guardar
           </button>
           <button
-            form={formId}
             type="submit"
             formAction={deleteOrderAction}
-            className="w-full rounded bg-[#e74a3b] px-2 py-1 text-xs font-semibold text-white hover:bg-[#c8392c]"
+            className="rounded bg-[#e74a3b] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#c8392c]"
           >
             Borrar
           </button>
+          <span className="ml-auto self-center text-xs text-gray-400">Total {formatPrice(order.total_amount)}</span>
         </div>
-      </td>
-    </tr>
+      </form>
+    </div>
   );
 }

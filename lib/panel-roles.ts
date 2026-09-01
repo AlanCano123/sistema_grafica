@@ -8,7 +8,7 @@ export type Role = "admin" | "usuario";
 // plata (Proveedores: precios mayoristas crudos de CDO/Maya; Configuración:
 // costos/márgenes globales; Finanzas y Movimientos: plata directamente;
 // "/panel" el Resumen muestra cobros/pagos pendientes y ventas totales).
-// "usuario" ve: Pedidos, Materiales, Cotizador, Presupuestos, Ventas.
+// "usuario" ve: Cotizador, Pedidos, Materiales, Presupuestos.
 // Un solo lugar para ajustar esto después, sin tocar lógica.
 export const ADMIN_ONLY_PATHS = ["/panel", "/panel/proveedores", "/panel/configuracion", "/panel/finanzas", "/panel/deudas"];
 

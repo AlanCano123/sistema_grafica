@@ -1,5 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import type { ClientInfo, DocumentItem } from "./documents";
+import type { ClientInfo } from "./documents";
+import { parseItems, type JobItem } from "./job-items";
+import { createOrder } from "./orders";
 
 export type QuoteStatus = "pendiente" | "aceptado" | "rechazado";
 
@@ -16,26 +18,20 @@ export interface Quote {
   items: string; // JSON — usar getQuoteItems() para parsearlo
   total: number;
   status: QuoteStatus;
+  order_id: number | null; // pedido creado al aceptar y convertir
   created_at: string;
 }
 
-/** Número de presupuesto: no se guarda, se deriva del id (mismo criterio
- * que budgetNumber() en lib/orders.ts). */
+/** Número de presupuesto: no se guarda, se deriva del id. */
 export function quoteNumber(quote: Quote): string {
   return `PRES-${quote.id}`;
 }
 
-export function getQuoteItems(quote: Quote): DocumentItem[] {
-  try {
-    return JSON.parse(quote.items) as DocumentItem[];
-  } catch {
-    return [];
-  }
+export function getQuoteItems(quote: Quote): JobItem[] {
+  return parseItems(quote.items);
 }
 
-/** Arma el ClientInfo (mismo shape que usa el generador de PDF) a partir de
- * las columnas guardadas — para pasarlo directo a RemitoDocument al
- * convertir un presupuesto aceptado. */
+/** Arma el ClientInfo (mismo shape que el generador de PDF) desde las columnas. */
 export function getQuoteClient(quote: Quote): ClientInfo {
   return {
     nombre: quote.client_nombre,
@@ -60,14 +56,24 @@ export async function getQuotes(): Promise<Quote[]> {
   }
 }
 
+export async function getQuoteById(id: number): Promise<Quote | null> {
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const row = await env.DB.prepare("SELECT * FROM quotes WHERE id = ?").bind(id).first<Quote>();
+    return row ?? null;
+  } catch (err) {
+    console.error("[quotes] Error trayendo presupuesto:", err);
+    return null;
+  }
+}
+
 export type QuoteInput = {
   client: ClientInfo;
-  items: DocumentItem[];
+  items: JobItem[];
   total: number;
 };
 
-/** Devuelve el id del presupuesto creado (para armar el número en el PDF
- * que se descarga en el mismo momento). */
+/** Devuelve el id del presupuesto creado. */
 export async function createQuote(data: QuoteInput): Promise<number> {
   const { env } = await getCloudflareContext({ async: true });
   const result = await env.DB.prepare(
@@ -98,4 +104,34 @@ export async function updateQuoteStatus(id: number, status: QuoteStatus): Promis
 export async function deleteQuote(id: number): Promise<void> {
   const { env } = await getCloudflareContext({ async: true });
   await env.DB.prepare("DELETE FROM quotes WHERE id = ?").bind(id).run();
+}
+
+export type QuoteToOrderInput = {
+  job_name: string;
+  due_date: string | null;
+  has_deposit: 0 | 1;
+  deposit_amount: number;
+};
+
+/** Convierte un presupuesto aceptado en pedido: crea el pedido con los items
+ * y el cliente del presupuesto, y guarda el id del pedido en el presupuesto
+ * (para no convertirlo dos veces). Devuelve el id del pedido. */
+export async function convertQuoteToOrder(quoteId: number, data: QuoteToOrderInput): Promise<number | null> {
+  const quote = await getQuoteById(quoteId);
+  if (!quote || quote.order_id !== null) return quote?.order_id ?? null;
+
+  const orderId = await createOrder({
+    file_number: null,
+    client_name: quote.client_nombre,
+    job_name: data.job_name,
+    status: "pendiente",
+    has_deposit: data.has_deposit,
+    deposit_amount: data.deposit_amount,
+    due_date: data.due_date,
+    items: getQuoteItems(quote),
+  });
+
+  const { env } = await getCloudflareContext({ async: true });
+  await env.DB.prepare("UPDATE quotes SET order_id = ?, status = 'aceptado' WHERE id = ?").bind(orderId, quoteId).run();
+  return orderId;
 }

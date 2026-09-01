@@ -15,47 +15,18 @@ export interface Debt {
 /** Saldo pendiente de una deuda — no se guarda, se deriva siempre del
  * monto y lo pagado actuales (mismo criterio que el saldo de Pedidos).
  * Si está marcada "Pagado" el saldo es $0 aunque `paid_amount` no se haya
- * cargado con precisión (deudas viejas quedaron en paid_amount = 0 al
- * agregar esta columna) — el estado manual manda por sobre el parcial. */
+ * cargado con precisión — el estado manual manda por sobre el parcial. */
 export function getDebtBalance(debt: Debt): number {
   if (debt.status === "paid") return 0;
   return debt.amount - debt.paid_amount;
 }
 
-export interface Sale {
-  id: number;
-  description: string;
-  amount: number;
-  sale_date: string;
-  client_name: string | null;
-  payment_method: string | null; // 'efectivo' | 'transferencia' | 'tarjeta' | 'otro'
-  order_id: number | null; // pedido vinculado, si la venta viene de un pedido terminado+cobrado
-  service_type: string | null; // ver SERVICE_TYPES
-  created_at: string;
-}
-
-/** Tipos de servicio para clasificar una venta (para "Ventas por tipo de
- * servicio" en Finanzas) — lista fija, confirmada con Fernando. */
-export const SERVICE_TYPES: { value: string; label: string }[] = [
-  { value: "corte_laser", label: "Corte láser" },
-  { value: "grabado_laser", label: "Grabado láser" },
-  { value: "impresion_uv", label: "Impresión UV" },
-  { value: "impresion_dtf", label: "Impresión DTF" },
-  { value: "impresion_textil", label: "Impresión textil" },
-  { value: "corte_polifan", label: "Corte de Polifan" },
-  { value: "carteleria_corporea", label: "Cartelería Corpórea" },
-  { value: "diseno_personalizado", label: "Diseño Personalizado" },
-];
-
 /** Sin `sinceDate`: trae todo. Con `sinceDate`, trae las recientes MÁS las
- * pendientes (sin importar la fecha — plata que todavía falta cobrar/pagar
- * nunca se esconde) — solo deja afuera deudas viejas ya pagadas. Mismo
- * criterio que `getOrders`, pensado para cuando la tabla crezca mucho. */
+ * pendientes (sin importar la fecha) — solo deja afuera deudas viejas ya
+ * pagadas. Mismo criterio que `getOrders`. */
 export async function getDebts(sinceDate?: string): Promise<Debt[]> {
   try {
     const { env } = await getCloudflareContext({ async: true });
-    // "due_date IS NULL" da 0/1: los que tienen fecha (0) van primero,
-    // ordenados ascendente; los NULL quedan al final.
     if (sinceDate) {
       const { results } = await env.DB.prepare(
         `SELECT * FROM debts
@@ -107,108 +78,4 @@ export async function updateDebt(id: number, data: DebtInput): Promise<void> {
 export async function deleteDebt(id: number): Promise<void> {
   const { env } = await getCloudflareContext({ async: true });
   await env.DB.prepare("DELETE FROM debts WHERE id = ?").bind(id).run();
-}
-
-/** Sin `sinceDate`: trae todo. Con `sinceDate`, solo las ventas desde esa
- * fecha — a diferencia de pedidos/deudas, una venta ya cerrada no tiene
- * "estado pendiente" que deba seguir mostrándose, así que el filtro es
- * directo por fecha. Pensado para cuando la tabla crezca mucho. */
-export async function getSales(sinceDate?: string): Promise<Sale[]> {
-  try {
-    const { env } = await getCloudflareContext({ async: true });
-    if (sinceDate) {
-      const { results } = await env.DB.prepare("SELECT * FROM sales WHERE sale_date >= ? ORDER BY sale_date DESC")
-        .bind(sinceDate)
-        .all<Sale>();
-      return results;
-    }
-    const { results } = await env.DB.prepare("SELECT * FROM sales ORDER BY sale_date DESC").all<Sale>();
-    return results;
-  } catch (err) {
-    console.error("[business] Error trayendo ventas:", err);
-    return [];
-  }
-}
-
-export type SaleInput = {
-  description: string;
-  amount: number;
-  sale_date: string;
-  client_name: string | null;
-  payment_method: string | null;
-  order_id: number | null;
-  service_type: string | null;
-};
-
-export async function createSale(data: SaleInput): Promise<void> {
-  const { env } = await getCloudflareContext({ async: true });
-  await env.DB.prepare(
-    "INSERT INTO sales (description, amount, sale_date, client_name, payment_method, order_id, service_type) VALUES (?, ?, ?, ?, ?, ?, ?)"
-  )
-    .bind(
-      data.description,
-      data.amount,
-      data.sale_date,
-      data.client_name,
-      data.payment_method,
-      data.order_id,
-      data.service_type
-    )
-    .run();
-}
-
-export async function updateSale(id: number, data: SaleInput): Promise<void> {
-  const { env } = await getCloudflareContext({ async: true });
-  await env.DB.prepare(
-    "UPDATE sales SET description = ?, amount = ?, sale_date = ?, client_name = ?, payment_method = ?, order_id = ?, service_type = ? WHERE id = ?"
-  )
-    .bind(
-      data.description,
-      data.amount,
-      data.sale_date,
-      data.client_name,
-      data.payment_method,
-      data.order_id,
-      data.service_type,
-      id
-    )
-    .run();
-}
-
-export async function deleteSale(id: number): Promise<void> {
-  const { env } = await getCloudflareContext({ async: true });
-  await env.DB.prepare("DELETE FROM sales WHERE id = ?").bind(id).run();
-}
-
-export async function getSaleByOrderId(orderId: number): Promise<Sale | null> {
-  try {
-    const { env } = await getCloudflareContext({ async: true });
-    const row = await env.DB.prepare("SELECT * FROM sales WHERE order_id = ? LIMIT 1").bind(orderId).first<Sale>();
-    return row ?? null;
-  } catch (err) {
-    console.error("[business] Error buscando venta por pedido:", err);
-    return null;
-  }
-}
-
-/** Crea la venta de un pedido Terminado + cobrado, si todavía no existe una
- * ligada a ese pedido (evita duplicar si el pedido se edita de nuevo). */
-export async function createSaleFromOrder(order: {
-  id: number;
-  client_name: string;
-  job_name: string;
-  total_amount: number;
-}): Promise<void> {
-  const existing = await getSaleByOrderId(order.id);
-  if (existing) return;
-
-  await createSale({
-    description: order.job_name,
-    amount: order.total_amount,
-    sale_date: new Date().toISOString().slice(0, 10),
-    client_name: order.client_name,
-    payment_method: null,
-    order_id: order.id,
-    service_type: null, // los pedidos no tienen este concepto — se completa a mano en Ventas si hace falta
-  });
 }
