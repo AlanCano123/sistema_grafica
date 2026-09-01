@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, FileDown, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, ChevronDown, FileDown, Pencil, Plus, Trash2 } from "lucide-react";
 import type { Material } from "@/lib/materials";
 import { EMPTY_JOB_ITEM, itemBreakdown, itemsTotal, type JobItem } from "@/lib/job-items";
 import { EMPTY_CLIENT, type ClientInfo } from "@/lib/documents";
@@ -33,6 +33,9 @@ export default function CotizadorForm({
   const materialsById = useMemo(() => new Map(materials.map((m) => [m.id, m])), [materials]);
 
   const [items, setItems] = useState<JobItem[]>([{ ...EMPTY_JOB_ITEM }]);
+  // Índice del item expandido para editar. -1 = todos colapsados.
+  const [openItem, setOpenItem] = useState<number>(0);
+  const itemsRef = useRef<HTMLDivElement>(null);
 
   // --- Crear pedido ---
   const [fileNumber, setFileNumber] = useState("");
@@ -51,6 +54,16 @@ export default function CotizadorForm({
   const [savedQuoteId, setSavedQuoteId] = useState<number | null>(null);
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
+  // Click afuera de la lista de items -> colapsa el que estaba abierto.
+  useEffect(() => {
+    if (openItem < 0) return;
+    function onDown(e: MouseEvent) {
+      if (itemsRef.current && !itemsRef.current.contains(e.target as Node)) setOpenItem(-1);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [openItem]);
+
   const total = itemsTotal(items);
   const cleanItems = () => items.filter((i) => i.description.trim() !== "" || i.unitPrice > 0);
 
@@ -60,9 +73,11 @@ export default function CotizadorForm({
   }
   function addItem() {
     setItems((rows) => [...rows, { ...EMPTY_JOB_ITEM }]);
+    setOpenItem(-1); // el nuevo item entra colapsado
   }
   function removeItem(index: number) {
     setItems((rows) => (rows.length > 1 ? rows.filter((_, i) => i !== index) : rows));
+    setOpenItem((cur) => (cur === index ? -1 : cur > index ? cur - 1 : cur));
   }
   function updateClient<K extends keyof ClientInfo>(key: K, value: ClientInfo[K]) {
     setClient((c) => ({ ...c, [key]: value }));
@@ -154,27 +169,67 @@ export default function CotizadorForm({
       <div className="rounded border border-gray-100 bg-white p-5 shadow-sm">
         <h2 className="mb-1 text-sm font-bold text-[#4e73df]">Items del trabajo</h2>
         <p className="mb-4 text-xs text-gray-400">
-          Cargá cada item con material, medida y minutos — el cotizador calcula mayorista y minorista. Elegí uno como
-          precio o escribilo a mano.
+          Cada item calcula mayorista y minorista. Tocá &quot;Usar…&quot; para fijar el precio o escribilo a mano.
+          Los items quedan colapsados — click para editar.
         </p>
 
-        <div className="flex flex-col gap-4">
+        <div ref={itemsRef} className="flex flex-col gap-3">
           {items.map((item, i) => {
             const bd = itemBreakdown(item, materialsById, moPerMinute, wholesalePct, retailPct);
-            return (
-              <div key={i} className="rounded border border-gray-200 p-4">
-                <div className="mb-3 flex items-start justify-between">
-                  <span className="text-xs font-bold text-gray-400">Item {i + 1}</span>
+            const open = openItem === i;
+
+            if (!open) {
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setOpenItem(i)}
+                  className="flex w-full items-center gap-3 rounded border border-gray-200 px-4 py-3 text-left hover:border-[#4e73df]/50 hover:bg-gray-50"
+                >
+                  <Pencil size={14} className="shrink-0 text-gray-400" />
+                  <span className="flex-1 truncate text-sm text-gray-800">
+                    {item.description.trim() || <span className="text-gray-400">Item {i + 1} — sin descripción</span>}
+                  </span>
+                  <span className="shrink-0 text-sm font-bold text-gray-800">
+                    {formatPrice(item.unitPrice)}
+                    {item.quantity !== 1 && (
+                      <span className="ml-1 text-xs font-normal text-gray-400">
+                        × {item.quantity} = {formatPrice(item.quantity * item.unitPrice)}
+                      </span>
+                    )}
+                  </span>
                   {items.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeItem(i)}
-                      className="text-gray-400 hover:text-[#e74a3b]"
+                    <span
+                      role="button"
+                      tabIndex={-1}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeItem(i);
+                      }}
+                      className="shrink-0 text-gray-400 hover:text-[#e74a3b]"
                       title="Sacar item"
                     >
                       <Trash2 size={16} />
-                    </button>
+                    </span>
                   )}
+                </button>
+              );
+            }
+
+            return (
+              <div key={i} className="rounded border border-[#4e73df]/40 bg-white p-4 ring-1 ring-[#4e73df]/20">
+                <div className="mb-3 flex items-start justify-between">
+                  <span className="text-xs font-bold text-gray-400">Item {i + 1}</span>
+                  <div className="flex items-center gap-3">
+                    {items.length > 1 && (
+                      <button type="button" onClick={() => removeItem(i)} className="text-gray-400 hover:text-[#e74a3b]" title="Sacar item">
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                    <button type="button" onClick={() => setOpenItem(-1)} className="text-gray-400 hover:text-gray-700" title="Colapsar">
+                      <ChevronDown size={16} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -307,6 +362,7 @@ export default function CotizadorForm({
                         onClick={() => {
                           updateItem(i, "unitPrice", Math.round(bd.wholesaleUnit * 100) / 100);
                           updateItem(i, "priceMode", "mayorista");
+                          setOpenItem(-1);
                         }}
                         className={`rounded px-2 py-1 text-xs font-semibold ${
                           item.priceMode === "mayorista" ? "bg-[#4e73df] text-white" : "bg-white text-[#4e73df] ring-1 ring-[#4e73df]/40"
@@ -319,6 +375,7 @@ export default function CotizadorForm({
                         onClick={() => {
                           updateItem(i, "unitPrice", Math.round(bd.retailUnit * 100) / 100);
                           updateItem(i, "priceMode", "minorista");
+                          setOpenItem(-1);
                         }}
                         className={`rounded px-2 py-1 text-xs font-semibold ${
                           item.priceMode === "minorista" ? "bg-[#1cc88a] text-white" : "bg-white text-[#1cc88a] ring-1 ring-[#1cc88a]/40"
