@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { PhoneIcon, LocationIcon } from "./BrandIcons";
+import { PhoneIcon, LocationIcon, FacebookIcon, TikTokIcon } from "./BrandIcons";
 import BrandLogo from "./BrandLogo";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import BackToTop from "./BackToTop";
@@ -49,17 +49,47 @@ export default function Footer() {
                 @laser.kind
               </a>
             </li>
+            <li className="flex items-center gap-2.5">
+              <FacebookIcon className="h-4 w-4 shrink-0 text-brand-red" />
+              <a
+                href="https://www.facebook.com/artisticalaserkind/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors hover:text-white"
+              >
+                Artística Láser Kind
+              </a>
+            </li>
+            <li className="flex items-center gap-2.5">
+              <TikTokIcon className="h-4 w-4 shrink-0 text-brand-red" />
+              <a
+                href="https://www.tiktok.com/@.laserkind"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors hover:text-white"
+              >
+                @.laserkind
+              </a>
+            </li>
             <li className="flex items-start gap-2.5">
               <LocationIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-red" />
               <span>Zapiola 253, Río Gallegos, Santa Cruz</span>
             </li>
           </ul>
+
+          <iframe
+            title="Ubicación de Láser Kind — Zapiola 253, Río Gallegos"
+            src="https://www.google.com/maps?q=Zapiola%20253%2C%20R%C3%ADo%20Gallegos%2C%20Santa%20Cruz&output=embed"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            className="mt-4 h-44 w-full rounded-lg border border-white/10"
+          />
         </div>
 
         <div>
           <p className="mb-4 text-xs font-bold tracking-[0.2em] text-brand-red">LÁSER KIND</p>
           <p className="mb-5 text-sm text-neutral-400">Diseño · Grabado · Personalización</p>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <a
               href="https://instagram.com/laser.kind"
               target="_blank"
@@ -68,6 +98,24 @@ export default function Footer() {
               className="flex h-14 w-14 items-center justify-center rounded-full border border-white/15 text-neutral-300 transition-colors hover:border-white/40 hover:text-white"
             >
               <BrandLogo brand="instagram" size={28} className="h-7 w-7" />
+            </a>
+            <a
+              href="https://www.facebook.com/artisticalaserkind/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Facebook"
+              className="flex h-14 w-14 items-center justify-center rounded-full border border-white/15 text-neutral-300 transition-colors hover:border-white/40 hover:text-white"
+            >
+              <FacebookIcon className="h-7 w-7" />
+            </a>
+            <a
+              href="https://www.tiktok.com/@.laserkind"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="TikTok"
+              className="flex h-14 w-14 items-center justify-center rounded-full border border-white/15 text-neutral-300 transition-colors hover:border-white/40 hover:text-white"
+            >
+              <TikTokIcon className="h-7 w-7" />
             </a>
             <a
               href={buildWhatsAppUrl()}

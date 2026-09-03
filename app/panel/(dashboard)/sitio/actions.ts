@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/panel-auth";
 import { updateSiteSettings } from "@/lib/materials-db";
 import { countServicePhotos, createServicePhoto, deleteServicePhoto, moveServicePhoto } from "@/lib/service-photos";
+import { setGrabadosPricing } from "@/lib/site-content";
 import { MAX_PHOTOS_PER_SERVICE, SERVICE_SLUGS } from "@/lib/services";
 import { requiredNumber } from "@/lib/validate";
 
@@ -23,6 +24,21 @@ export async function updateSiteSettingsAction(formData: FormData) {
     catalog_multiplier: requiredNumber(formData, "catalog_multiplier", { min: 0.1, max: 100 }),
   });
   revalidateAll();
+}
+
+const GRABADO_TIERS = 4;
+
+export async function updateGrabadosPricingAction(formData: FormData) {
+  await requireAdmin();
+  const items = [];
+  for (let i = 0; i < GRABADO_TIERS; i++) {
+    const label = String(formData.get(`label_${i}`) ?? "").trim().slice(0, 60);
+    const price = String(formData.get(`price_${i}`) ?? "").trim().slice(0, 30);
+    if (label) items.push({ label, price });
+  }
+  await setGrabadosPricing(items);
+  revalidatePath("/panel/sitio");
+  revalidatePath("/");
 }
 
 export async function uploadServicePhotosAction(formData: FormData) {

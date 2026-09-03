@@ -25,6 +25,22 @@ export function InstagramIcon({ className }: { className?: string }) {
   );
 }
 
+export function FacebookIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.78-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12z" />
+    </svg>
+  );
+}
+
+export function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M16.5 3c.36 2.03 1.5 3.63 3.5 3.98v2.6c-1.2.12-2.32-.2-3.5-.86v6.06c0 4.1-3 6.62-6.6 6.62A6.02 6.02 0 0 1 4 12.94c.32-2.9 2.6-5.06 5.5-5.06.36 0 .7.03 1 .09v2.7a3.1 3.1 0 0 0-1-.17c-1.63 0-2.9 1.28-2.9 2.9a2.9 2.9 0 0 0 5.8.15V3h4.1z" />
+    </svg>
+  );
+}
+
 export function PhoneIcon({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>

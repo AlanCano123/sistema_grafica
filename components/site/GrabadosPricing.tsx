@@ -1,11 +1,6 @@
-const GRABADOS = [
-  { label: "Grabado común", price: "$5.000" },
-  { label: "Grabado medio", price: "$9.000" },
-  { label: "Grabado full", price: "$15.000" },
-  { label: "Grabado 360°", price: "$20.000" },
-];
+import type { GrabadoTier } from "@/lib/site-content";
 
-export default function GrabadosPricing() {
+export default function GrabadosPricing({ items }: { items: GrabadoTier[] }) {
   return (
     <section id="grabados" className="border-b border-white/5 px-5 py-20 md:px-8 md:py-28">
       <div className="mx-auto max-w-3xl">
@@ -18,9 +13,9 @@ export default function GrabadosPricing() {
         </div>
 
         <div className="overflow-hidden rounded-xl border border-white/10" data-aos="fade-up">
-          {GRABADOS.map((item, i) => (
+          {items.map((item, i) => (
             <div
-              key={item.label}
+              key={`${item.label}-${i}`}
               className={`flex items-center justify-between px-6 py-4 ${i % 2 === 0 ? "bg-white/[0.02]" : ""} ${
                 i > 0 ? "border-t border-white/5" : ""
               }`}

@@ -6,6 +6,7 @@ import PriceCalculator from "@/components/PriceCalculator";
 import { computeMoRates } from "@/lib/materials";
 import { getMaterials, getOperatingCosts, getPricingSettings } from "@/lib/materials-db";
 import { getServicePhotosBySlug } from "@/lib/service-photos";
+import { getGrabadosPricing } from "@/lib/site-content";
 
 // D1 solo existe en tiempo real del Worker (materiales + configuración de
 // precios para la calculadora, fotos de servicios) — sin esto la página
@@ -13,11 +14,12 @@ import { getServicePhotosBySlug } from "@/lib/service-photos";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [materials, settings, costs, photosBySlug] = await Promise.all([
+  const [materials, settings, costs, photosBySlug, grabados] = await Promise.all([
     getMaterials(),
     getPricingSettings(),
     getOperatingCosts(),
     getServicePhotosBySlug(),
+    getGrabadosPricing(),
   ]);
   const rates = computeMoRates(settings, costs);
 
@@ -30,7 +32,7 @@ export default async function HomePage() {
     <main>
       <Hero />
       <Services photoIdsBySlug={photoIdsBySlug} />
-      <GrabadosPricing />
+      <GrabadosPricing items={grabados} />
       <Gallery />
       <PriceCalculator
         materials={materials}

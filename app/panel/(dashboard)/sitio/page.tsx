@@ -1,9 +1,15 @@
 import { requireAdmin } from "@/lib/panel-auth";
 import { getPricingSettings } from "@/lib/materials-db";
 import { getServicePhotosBySlug, photoUrl } from "@/lib/service-photos";
+import { getGrabadosPricing } from "@/lib/site-content";
 import { MAX_PHOTOS_PER_SERVICE, SERVICES } from "@/lib/services";
 import ServicePhotoUploader from "@/components/panel/sitio/ServicePhotoUploader";
-import { deleteServicePhotoAction, moveServicePhotoAction, updateSiteSettingsAction } from "./actions";
+import {
+  deleteServicePhotoAction,
+  moveServicePhotoAction,
+  updateGrabadosPricingAction,
+  updateSiteSettingsAction,
+} from "./actions";
 
 // D1 + KV solo existen en tiempo real del Worker.
 export const dynamic = "force-dynamic";
@@ -13,7 +19,11 @@ const inputClass =
 
 export default async function SitioPage() {
   await requireAdmin();
-  const [settings, photosBySlug] = await Promise.all([getPricingSettings(), getServicePhotosBySlug()]);
+  const [settings, photosBySlug, grabados] = await Promise.all([
+    getPricingSettings(),
+    getServicePhotosBySlug(),
+    getGrabadosPricing(),
+  ]);
 
   return (
     <>
@@ -63,6 +73,34 @@ export default async function SitioPage() {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* --- Tarifas de grabado (sección "Grabados" del sitio) --- */}
+      <div className="mb-8 rounded border border-gray-100 bg-white p-5 shadow-sm">
+        <h2 className="mb-4 text-sm font-bold text-[#4e73df]">Tarifas de grabado (sitio público)</h2>
+        <form action={updateGrabadosPricingAction} className="flex flex-col gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="grid grid-cols-2 gap-3">
+              <label className="text-xs text-gray-500">
+                {i === 0 && "Nombre"}
+                <input className={`mt-1 ${inputClass}`} name={`label_${i}`} defaultValue={grabados[i]?.label ?? ""} placeholder="Ej: Grabado común" />
+              </label>
+              <label className="text-xs text-gray-500">
+                {i === 0 && "Precio (texto)"}
+                <input className={`mt-1 ${inputClass}`} name={`price_${i}`} defaultValue={grabados[i]?.price ?? ""} placeholder="Ej: $5.000" />
+              </label>
+            </div>
+          ))}
+          <div>
+            <button type="submit" className="rounded bg-[#4e73df] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3d5cc4]">
+              Guardar tarifas
+            </button>
+          </div>
+        </form>
+        <p className="mt-2 text-[11px] text-gray-400">
+          Se muestran en la sección &quot;Grabados&quot; de la home. El precio es texto libre (escribilo como querés).
+          Dejá el nombre vacío para ocultar una fila.
+        </p>
       </div>
 
       {/* --- Fotos por servicio --- */}

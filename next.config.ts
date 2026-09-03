@@ -16,6 +16,7 @@ const cspHeader = `
   img-src 'self' data: https://d2jygl58194cng.cloudfront.net https://d1ok1ldurjeiif.cloudfront.net https://assets.cdo.dev.yellowspot.com.ar https://assets.cdopromocionales.com https://mayapublicidad.com;
   font-src 'self';
   connect-src 'self';
+  frame-src https://www.google.com;
   object-src 'none';
   base-uri 'self';
   form-action 'self';
