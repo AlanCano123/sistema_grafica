@@ -40,7 +40,7 @@ export default function PhotoUploader({
   idValue: string;
   currentCount: number;
   max: number;
-  uploadAction: (formData: FormData) => Promise<unknown>;
+  uploadAction: (formData: FormData) => Promise<{ ok: boolean; added: number; error?: string } | unknown>;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -75,8 +75,15 @@ export default function PhotoUploader({
         setError("No se pudo procesar ninguna imagen.");
         return;
       }
-      await uploadAction(fd);
+      const res = (await uploadAction(fd)) as { ok?: boolean; error?: string } | undefined;
+      if (res && res.ok === false) {
+        setError(res.error ?? "El servidor rechazó la subida.");
+        return;
+      }
       router.refresh();
+    } catch (err) {
+      console.error("[PhotoUploader] subida falló:", err);
+      setError("Error al subir. Probá de nuevo o avisá si sigue fallando.");
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";

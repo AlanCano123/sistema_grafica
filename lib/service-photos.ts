@@ -65,17 +65,23 @@ export async function createServicePhoto(
   contentType: string
 ): Promise<number | null> {
   const { env } = await getCloudflareContext({ async: true });
-  const maxRow = await env.DB.prepare("SELECT MAX(sort_order) AS m FROM service_photos WHERE service_slug = ?")
-    .bind(slug)
-    .first<{ m: number | null }>();
-  const nextOrder = (maxRow?.m ?? -1) + 1;
 
-  const res = await env.DB.prepare(
-    "INSERT INTO service_photos (service_slug, content_type, sort_order) VALUES (?, ?, ?)"
-  )
-    .bind(slug, contentType, nextOrder)
-    .run();
-  const id = res.meta.last_row_id;
+  let id: number;
+  try {
+    const maxRow = await env.DB.prepare("SELECT MAX(sort_order) AS m FROM service_photos WHERE service_slug = ?")
+      .bind(slug)
+      .first<{ m: number | null }>();
+    const nextOrder = (maxRow?.m ?? -1) + 1;
+    const res = await env.DB.prepare(
+      "INSERT INTO service_photos (service_slug, content_type, sort_order) VALUES (?, ?, ?)"
+    )
+      .bind(slug, contentType, nextOrder)
+      .run();
+    id = res.meta.last_row_id;
+  } catch (err) {
+    console.error("[service-photos] INSERT falló (¿falta la migración 0012 en esta base?):", err);
+    return null;
+  }
 
   try {
     await env.KV.put(photoKvKey(slug, id), bytes, { metadata: { contentType } });

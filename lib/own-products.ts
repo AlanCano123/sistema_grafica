@@ -179,15 +179,23 @@ export async function createOwnProductPhoto(
   contentType: string
 ): Promise<number | null> {
   const { env } = await getCloudflareContext({ async: true });
-  const maxRow = await env.DB.prepare("SELECT MAX(sort_order) AS m FROM own_product_photos WHERE product_id = ?")
-    .bind(productId)
-    .first<{ m: number | null }>();
-  const res = await env.DB.prepare(
-    "INSERT INTO own_product_photos (product_id, content_type, sort_order) VALUES (?, ?, ?)"
-  )
-    .bind(productId, contentType, (maxRow?.m ?? -1) + 1)
-    .run();
-  const id = res.meta.last_row_id;
+
+  let id: number;
+  try {
+    const maxRow = await env.DB.prepare("SELECT MAX(sort_order) AS m FROM own_product_photos WHERE product_id = ?")
+      .bind(productId)
+      .first<{ m: number | null }>();
+    const res = await env.DB.prepare(
+      "INSERT INTO own_product_photos (product_id, content_type, sort_order) VALUES (?, ?, ?)"
+    )
+      .bind(productId, contentType, (maxRow?.m ?? -1) + 1)
+      .run();
+    id = res.meta.last_row_id;
+  } catch (err) {
+    console.error("[own-products] INSERT falló (¿falta la migración 0013 en esta base?):", err);
+    return null;
+  }
+
   try {
     await env.KV.put(ownPhotoKvKey(productId, id), bytes, { metadata: { contentType } });
   } catch (err) {

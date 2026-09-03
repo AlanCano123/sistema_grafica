@@ -52,23 +52,36 @@ export async function updateGrabadosPricingAction(formData: FormData) {
   revalidatePath("/");
 }
 
-export async function uploadServicePhotosAction(formData: FormData) {
+type UploadResult = { ok: boolean; added: number; error?: string };
+
+export async function uploadServicePhotosAction(formData: FormData): Promise<UploadResult> {
   await requireAuth();
   const slug = String(formData.get("slug") ?? "");
-  if (!SERVICE_SLUGS.includes(slug)) return;
+  if (!SERVICE_SLUGS.includes(slug)) return { ok: false, added: 0, error: "Servicio inválido." };
 
   const files = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
   let count = await countServicePhotos(slug);
+  let added = 0;
+  let failed = 0;
 
   for (const file of files) {
     if (count >= MAX_PHOTOS_PER_SERVICE) break;
     if (!ALLOWED_TYPES.has(file.type) || file.size > MAX_BYTES) continue;
     const bytes = await file.arrayBuffer();
     const id = await createServicePhoto(slug, bytes, file.type);
-    if (id !== null) count++;
+    if (id !== null) {
+      count++;
+      added++;
+    } else {
+      failed++;
+    }
   }
   revalidatePath("/panel/sitio");
   revalidatePath("/");
+  if (added === 0 && failed > 0) {
+    return { ok: false, added: 0, error: "El servidor no pudo guardar la foto (revisá que las migraciones estén aplicadas)." };
+  }
+  return { ok: true, added };
 }
 
 export async function deleteServicePhotoAction(formData: FormData) {
@@ -132,21 +145,32 @@ export async function deleteOwnProductAction(formData: FormData) {
   revalidateAll();
 }
 
-export async function uploadOwnProductPhotosAction(formData: FormData) {
+export async function uploadOwnProductPhotosAction(formData: FormData): Promise<UploadResult> {
   await requireAuth();
   const productId = Number(formData.get("product_id"));
-  if (!Number.isInteger(productId) || productId < 1) return;
+  if (!Number.isInteger(productId) || productId < 1) return { ok: false, added: 0, error: "Producto inválido." };
 
   const files = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
   let count = await countOwnProductPhotos(productId);
+  let added = 0;
+  let failed = 0;
   for (const file of files) {
     if (count >= MAX_PHOTOS_PER_PRODUCT) break;
     if (!ALLOWED_TYPES.has(file.type) || file.size > MAX_BYTES) continue;
     const bytes = await file.arrayBuffer();
     const id = await createOwnProductPhoto(productId, bytes, file.type);
-    if (id !== null) count++;
+    if (id !== null) {
+      count++;
+      added++;
+    } else {
+      failed++;
+    }
   }
   revalidateAll();
+  if (added === 0 && failed > 0) {
+    return { ok: false, added: 0, error: "El servidor no pudo guardar la foto (revisá que las migraciones estén aplicadas)." };
+  }
+  return { ok: true, added };
 }
 
 export async function deleteOwnProductPhotoAction(formData: FormData) {
