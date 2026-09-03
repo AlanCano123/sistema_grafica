@@ -4,20 +4,19 @@
 // (que si se importa desde un "use client" rompe el build).
 export type Role = "admin" | "usuario";
 
-// Rutas del panel que solo puede ver "admin" — exponen costos/márgenes o
-// plata (Proveedores: precios mayoristas crudos de CDO/Maya; Finanzas y
-// Movimientos: plata directamente; "/panel" el Resumen muestra cobros/pagos
-// pendientes y ventas totales). Configuración ya no está en el Sidebar (se
-// entra desde Finanzas), pero sigue siendo admin-only por si se linkea.
-// "usuario" ve: Cotizador, Pedidos, Cuentas corrientes, Materiales, Presupuestos.
+// Rutas del panel que solo puede ver "admin" — exponen plata directa
+// (Finanzas, Movimientos, Cuentas corrientes: deuda de clientes; "/panel"
+// el Resumen muestra cobros/pagos pendientes y ventas totales).
+// Configuración ya no está en el Sidebar (se entra desde Finanzas), pero
+// sigue siendo admin-only por si se linkea.
+// "usuario" ve: Cotizador, Pedidos, Materiales, Proveedores, Presupuestos, Sitio web.
 // Un solo lugar para ajustar esto después, sin tocar lógica.
 export const ADMIN_ONLY_PATHS = [
   "/panel",
-  "/panel/proveedores",
+  "/panel/cuentas",
   "/panel/configuracion",
   "/panel/finanzas",
   "/panel/deudas",
-  "/panel/sitio",
 ];
 
 // A dónde va "usuario" al entrar al panel (no ve el Resumen). requireAdmin()

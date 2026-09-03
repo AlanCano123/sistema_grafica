@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/panel-auth";
+import { requireAuth } from "@/lib/panel-auth";
 import { getPricingSettings } from "@/lib/materials-db";
 import { getServicePhotosBySlug, photoUrl } from "@/lib/service-photos";
 import { getOwnPhotosByProduct, getOwnProducts, type OwnProductPhoto } from "@/lib/own-products";
@@ -21,7 +21,7 @@ const inputClass =
   "w-full rounded border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:border-[#4e73df] focus:outline-none";
 
 export default async function SitioPage() {
-  await requireAdmin();
+  await requireAuth();
   const [settings, photosBySlug, grabados, ownProducts, ownPhotosByProduct] = await Promise.all([
     getPricingSettings(),
     getServicePhotosBySlug(),

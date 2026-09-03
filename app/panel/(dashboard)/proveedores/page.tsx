@@ -1,5 +1,5 @@
 import { getCombinedProducts } from "@/lib/catalog";
-import { requireAdmin } from "@/lib/panel-auth";
+import { requireAuth } from "@/lib/panel-auth";
 import ProveedoresBrowser from "@/components/panel/proveedores/ProveedoresBrowser";
 
 // El catálogo se cachea en KV, pero igual necesita el binding real del
@@ -8,7 +8,7 @@ import ProveedoresBrowser from "@/components/panel/proveedores/ProveedoresBrowse
 export const dynamic = "force-dynamic";
 
 export default async function ProveedoresPage() {
-  await requireAdmin();
+  await requireAuth();
   const products = await getCombinedProducts();
 
   return (

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/panel-auth";
+import { requireAuth } from "@/lib/panel-auth";
 import { updateSiteSettings } from "@/lib/materials-db";
 import { countServicePhotos, createServicePhoto, deleteServicePhoto, moveServicePhoto } from "@/lib/service-photos";
 import {
@@ -29,7 +29,7 @@ function revalidateAll() {
 }
 
 export async function updateSiteSettingsAction(formData: FormData) {
-  await requireAdmin();
+  await requireAuth();
   await updateSiteSettings({
     avg_mo_minutes_web: requiredNumber(formData, "avg_mo_minutes_web", { min: 0, max: 1000 }),
     catalog_multiplier: requiredNumber(formData, "catalog_multiplier", { min: 0.1, max: 100 }),
@@ -40,7 +40,7 @@ export async function updateSiteSettingsAction(formData: FormData) {
 const GRABADO_TIERS = 4;
 
 export async function updateGrabadosPricingAction(formData: FormData) {
-  await requireAdmin();
+  await requireAuth();
   const items = [];
   for (let i = 0; i < GRABADO_TIERS; i++) {
     const label = String(formData.get(`label_${i}`) ?? "").trim().slice(0, 60);
@@ -53,7 +53,7 @@ export async function updateGrabadosPricingAction(formData: FormData) {
 }
 
 export async function uploadServicePhotosAction(formData: FormData) {
-  await requireAdmin();
+  await requireAuth();
   const slug = String(formData.get("slug") ?? "");
   if (!SERVICE_SLUGS.includes(slug)) return;
 
@@ -72,7 +72,7 @@ export async function uploadServicePhotosAction(formData: FormData) {
 }
 
 export async function deleteServicePhotoAction(formData: FormData) {
-  await requireAdmin();
+  await requireAuth();
   const id = requiredNumber(formData, "id", { min: 1 });
   await deleteServicePhoto(id);
   revalidatePath("/panel/sitio");
@@ -80,7 +80,7 @@ export async function deleteServicePhotoAction(formData: FormData) {
 }
 
 export async function moveServicePhotoAction(formData: FormData) {
-  await requireAdmin();
+  await requireAuth();
   const id = requiredNumber(formData, "id", { min: 1 });
   const dir = String(formData.get("dir")) === "up" ? "up" : "down";
   await moveServicePhoto(id, dir);
@@ -109,7 +109,7 @@ function ownProductInput(formData: FormData): OwnProductInput {
 }
 
 export async function createOwnProductAction(formData: FormData) {
-  await requireAdmin();
+  await requireAuth();
   const data = ownProductInput(formData);
   if (!data.name) return;
   await createOwnProduct(data);
@@ -117,7 +117,7 @@ export async function createOwnProductAction(formData: FormData) {
 }
 
 export async function updateOwnProductAction(formData: FormData) {
-  await requireAdmin();
+  await requireAuth();
   const id = requiredNumber(formData, "id", { min: 1 });
   const data = ownProductInput(formData);
   if (!data.name) return;
@@ -126,14 +126,14 @@ export async function updateOwnProductAction(formData: FormData) {
 }
 
 export async function deleteOwnProductAction(formData: FormData) {
-  await requireAdmin();
+  await requireAuth();
   const id = requiredNumber(formData, "id", { min: 1 });
   await deleteOwnProduct(id);
   revalidateAll();
 }
 
 export async function uploadOwnProductPhotosAction(formData: FormData) {
-  await requireAdmin();
+  await requireAuth();
   const productId = Number(formData.get("product_id"));
   if (!Number.isInteger(productId) || productId < 1) return;
 
@@ -150,14 +150,14 @@ export async function uploadOwnProductPhotosAction(formData: FormData) {
 }
 
 export async function deleteOwnProductPhotoAction(formData: FormData) {
-  await requireAdmin();
+  await requireAuth();
   const id = requiredNumber(formData, "id", { min: 1 });
   await deleteOwnProductPhoto(id);
   revalidateAll();
 }
 
 export async function moveOwnProductPhotoAction(formData: FormData) {
-  await requireAdmin();
+  await requireAuth();
   const id = requiredNumber(formData, "id", { min: 1 });
   const dir = String(formData.get("dir")) === "up" ? "up" : "down";
   await moveOwnProductPhoto(id, dir);

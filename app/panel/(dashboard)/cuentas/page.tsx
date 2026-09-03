@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdmin } from "@/lib/panel-auth";
 import { getBalance, getOrders, type Order } from "@/lib/orders";
 import { formatPrice } from "@/lib/product-helpers";
 import StatCard from "@/components/StatCard";
@@ -19,6 +20,7 @@ interface PageProps {
 }
 
 export default async function CuentasPage({ searchParams }: PageProps) {
+  await requireAdmin();
   const { historial } = await searchParams;
   const verTodo = historial === "todo";
   const orders = await getOrders(verTodo ? undefined : sinceDate());
