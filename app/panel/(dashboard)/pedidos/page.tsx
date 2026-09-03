@@ -10,6 +10,7 @@ import {
   type OrderStatus,
 } from "@/lib/orders";
 import { parseItems } from "@/lib/job-items";
+import { PROVIDER_LABELS, type Provider } from "@/lib/providers";
 import { formatPrice } from "@/lib/product-helpers";
 import StatCard from "@/components/StatCard";
 import { Clock, CheckCircle2, AlertTriangle, Plus } from "lucide-react";
@@ -40,6 +41,17 @@ function sinceDate(): string {
 
 function itemsSummary(order: Order): string[] {
   return parseItems(order.items).map((it) => `${it.quantity || 1}× ${it.description.trim() || "(sin descripción)"}`);
+}
+
+/** "CDO 2 · Maya 1" — cuántos items comprar a cada proveedor. "" si ninguno tiene proveedor. */
+function providerTally(order: Order): string {
+  const by = new Map<Provider, number>();
+  for (const it of parseItems(order.items)) {
+    if (it.provider) by.set(it.provider, (by.get(it.provider) ?? 0) + 1);
+  }
+  return Array.from(by.entries())
+    .map(([p, n]) => `${PROVIDER_LABELS[p]} ${n}`)
+    .join(" · ");
 }
 
 interface PageProps {
@@ -143,6 +155,9 @@ function KanbanCard({ order }: { order: Order }) {
         </ul>
       )}
       <p className="mt-1 text-xs font-semibold text-gray-600">Total {formatPrice(order.total_amount)}</p>
+      {providerTally(order) && (
+        <p className="mt-0.5 text-[11px] text-gray-400">Comprar: {providerTally(order)}</p>
+      )}
       <div className="mt-1 flex flex-wrap gap-1">
         {balance > 0 && (
           <span className="inline-block rounded-full bg-[#e74a3b]/10 px-2 py-0.5 text-[10px] font-bold text-[#e74a3b]">

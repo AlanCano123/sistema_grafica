@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { budgetNumber, getBalance, type Order, type OrderStatus } from "@/lib/orders";
 import { parseItems } from "@/lib/job-items";
+import { PROVIDER_LABELS } from "@/lib/providers";
 import { formatPrice } from "@/lib/product-helpers";
 import { deleteOrderAction, updateOrderAction } from "@/app/panel/(dashboard)/pedidos/actions";
 
@@ -87,7 +88,9 @@ function OrderCard({ order, onCollapse }: { order: Order; onCollapse: () => void
         <ul className="mb-3 text-xs text-gray-500">
           {items.map((it, i) => (
             <li key={i}>
-              · {it.quantity || 1}× {it.description.trim() || "(sin descripción)"} — {formatPrice(it.quantity * it.unitPrice)}
+              · {it.quantity || 1}× {it.description.trim() || "(sin descripción)"}
+              {it.provider && <span className="text-gray-400"> [{PROVIDER_LABELS[it.provider]}]</span>} —{" "}
+              {formatPrice(it.quantity * it.unitPrice)}
             </li>
           ))}
         </ul>

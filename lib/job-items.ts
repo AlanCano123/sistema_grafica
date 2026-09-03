@@ -3,6 +3,7 @@
 // criterio que ya tenían los presupuestos). Sin acceso a D1 acá: lo
 // importan tanto el Cotizador (client) como las páginas server.
 import { calculatePrice, type Material } from "./materials";
+import { isProvider, type Provider } from "./providers";
 
 export type PriceMode = "mayorista" | "minorista" | "manual";
 
@@ -16,6 +17,7 @@ export interface JobItem {
   lengthMm: number | null;
   moMinutes: number | null;
   serviceType: string | null; // value de SERVICE_TYPES
+  provider: Provider | null; // de qué proveedor sale el artículo (para comprar/revender)
 }
 
 export const EMPTY_JOB_ITEM: JobItem = {
@@ -28,6 +30,7 @@ export const EMPTY_JOB_ITEM: JobItem = {
   lengthMm: null,
   moMinutes: null,
   serviceType: null,
+  provider: null,
 };
 
 /** Normaliza un valor cualquiera (viene de JSON.parse, puede tener shape
@@ -53,6 +56,7 @@ export function normalizeItem(raw: unknown): JobItem {
     lengthMm: numOrNull(r.lengthMm),
     moMinutes: numOrNull(r.moMinutes),
     serviceType: typeof r.serviceType === "string" && r.serviceType !== "" ? r.serviceType : null,
+    provider: isProvider(r.provider) ? r.provider : null,
   };
 }
 

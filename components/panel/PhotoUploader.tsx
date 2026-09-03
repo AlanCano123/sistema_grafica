@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Upload } from "lucide-react";
-import { uploadServicePhotosAction } from "@/app/panel/(dashboard)/sitio/actions";
 
 const MAX_SIDE = 1600;
 const WEBP_QUALITY = 0.82;
@@ -27,14 +26,21 @@ async function toResizedWebp(file: File): Promise<Blob> {
   });
 }
 
-export default function ServicePhotoUploader({
-  slug,
+// Subida de fotos genérica (servicios / productos propios). El campo que
+// identifica el destino (`idField` = "slug" o "product_id") y su valor se
+// mandan en el FormData junto con los archivos (`photos`).
+export default function PhotoUploader({
+  idField,
+  idValue,
   currentCount,
   max,
+  uploadAction,
 }: {
-  slug: string;
+  idField: string;
+  idValue: string;
   currentCount: number;
   max: number;
+  uploadAction: (formData: FormData) => Promise<unknown>;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -46,13 +52,13 @@ export default function ServicePhotoUploader({
   async function onFiles(files: FileList) {
     setError(null);
     if (remaining === 0) {
-      setError(`Máximo ${max} fotos por servicio. Borrá alguna primero.`);
+      setError(`Máximo ${max} fotos. Borrá alguna primero.`);
       return;
     }
     setBusy(true);
     try {
       const fd = new FormData();
-      fd.set("slug", slug);
+      fd.set(idField, idValue);
       let added = 0;
       for (const file of Array.from(files)) {
         if (added >= remaining) break;
@@ -69,7 +75,7 @@ export default function ServicePhotoUploader({
         setError("No se pudo procesar ninguna imagen.");
         return;
       }
-      await uploadServicePhotosAction(fd);
+      await uploadAction(fd);
       router.refresh();
     } finally {
       setBusy(false);

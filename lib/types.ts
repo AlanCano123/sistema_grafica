@@ -66,8 +66,9 @@ export interface Product {
   icons?: Icon[];
   packing?: Packing;
   variants: Variant[];
-  /** De qué API vino el producto (para debug / trazabilidad, no se muestra en UI) */
-  provider?: "cdo" | "maya";
+  /** De dónde salió el producto (trazabilidad interna, no se muestra al cliente).
+   *  "propio" = producto de Láser Kind (tabla own_products). */
+  provider?: "cdo" | "maya" | "propio";
 }
 
 export interface Pagination {

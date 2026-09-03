@@ -1,14 +1,17 @@
 import { requireAdmin } from "@/lib/panel-auth";
 import { getPricingSettings } from "@/lib/materials-db";
 import { getServicePhotosBySlug, photoUrl } from "@/lib/service-photos";
+import { getOwnPhotosByProduct, getOwnProducts, type OwnProductPhoto } from "@/lib/own-products";
 import { getGrabadosPricing } from "@/lib/site-content";
 import { MAX_PHOTOS_PER_SERVICE, SERVICES } from "@/lib/services";
-import ServicePhotoUploader from "@/components/panel/sitio/ServicePhotoUploader";
+import PhotoUploader from "@/components/panel/PhotoUploader";
+import OwnProductsManager from "@/components/panel/sitio/OwnProductsManager";
 import {
   deleteServicePhotoAction,
   moveServicePhotoAction,
   updateGrabadosPricingAction,
   updateSiteSettingsAction,
+  uploadServicePhotosAction,
 } from "./actions";
 
 // D1 + KV solo existen en tiempo real del Worker.
@@ -19,18 +22,23 @@ const inputClass =
 
 export default async function SitioPage() {
   await requireAdmin();
-  const [settings, photosBySlug, grabados] = await Promise.all([
+  const [settings, photosBySlug, grabados, ownProducts, ownPhotosByProduct] = await Promise.all([
     getPricingSettings(),
     getServicePhotosBySlug(),
     getGrabadosPricing(),
+    getOwnProducts(true),
+    getOwnPhotosByProduct(),
   ]);
+
+  const ownPhotosRecord: Record<number, OwnProductPhoto[]> = {};
+  for (const [pid, list] of ownPhotosByProduct) ownPhotosRecord[pid] = list;
 
   return (
     <>
       <h1 className="mb-2 text-xl font-bold text-gray-800">Sitio web</h1>
       <p className="mb-6 max-w-2xl text-sm text-gray-500">
-        Configuración y contenido del sitio público: multiplicador de precios del catálogo, calculadora, y las fotos
-        del carrusel de cada servicio.
+        Configuración y contenido del sitio público: precios del catálogo y la calculadora, tarifas de grabado,
+        productos propios y las fotos del carrusel de cada servicio.
       </p>
 
       {/* --- Precios y calculadora del sitio --- */}
@@ -103,7 +111,13 @@ export default async function SitioPage() {
         </p>
       </div>
 
+      {/* --- Productos propios --- */}
+      <div className="mb-8">
+        <OwnProductsManager products={ownProducts} photos={ownPhotosRecord} />
+      </div>
+
       {/* --- Fotos por servicio --- */}
+      <h2 className="mb-3 text-sm font-bold text-[#4e73df]">Fotos del carrusel de servicios</h2>
       <div className="flex flex-col gap-4">
         {SERVICES.map((service) => {
           const photos = photosBySlug.get(service.slug) ?? [];
@@ -116,7 +130,13 @@ export default async function SitioPage() {
                     {photos.length} / {MAX_PHOTOS_PER_SERVICE} fotos
                   </p>
                 </div>
-                <ServicePhotoUploader slug={service.slug} currentCount={photos.length} max={MAX_PHOTOS_PER_SERVICE} />
+                <PhotoUploader
+                  idField="slug"
+                  idValue={service.slug}
+                  currentCount={photos.length}
+                  max={MAX_PHOTOS_PER_SERVICE}
+                  uploadAction={uploadServicePhotosAction}
+                />
               </div>
 
               {photos.length === 0 ? (

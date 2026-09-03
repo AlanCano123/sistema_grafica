@@ -124,16 +124,19 @@ export function estimateArsPrice(
   return rawValue * m;
 }
 
-/** Rango de precio ESTIMADO (en pesos) entre todos los variantes. `null` si ninguno se pudo estimar. */
+/** Rango de precio ESTIMADO (en pesos) entre todos los variantes. `null` si ninguno se pudo estimar.
+ *  Los productos propios (provider "propio") ya tienen precio final en ARS —
+ *  no se les aplica ni el dólar ni el multiplicador del catálogo. */
 export function getEstimatedPriceRange(
   product: Product,
   dolarVenta: number | null,
   multiplier: number = DEFAULT_CATALOG_MULTIPLIER
 ): { min: number; max: number } | null {
+  const isOwn = product.provider === "propio";
   const prices = product.variants
     .map((v) => parseFloat(v.net_price))
     .filter((p) => !isNaN(p))
-    .map((raw) => estimateArsPrice(raw, dolarVenta, multiplier))
+    .map((raw) => (isOwn ? raw : estimateArsPrice(raw, dolarVenta, multiplier)))
     .filter((p): p is number => p != null);
 
   if (prices.length === 0) return null;

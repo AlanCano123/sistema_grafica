@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowRight, ChevronDown, FileDown, Pencil, Plus, Trash2 } from "lucide-react";
 import type { Material } from "@/lib/materials";
 import { EMPTY_JOB_ITEM, itemBreakdown, itemsTotal, type JobItem } from "@/lib/job-items";
+import { isProvider, PROVIDER_LABELS, PROVIDER_OPTIONS } from "@/lib/providers";
 import { EMPTY_CLIENT, type ClientInfo } from "@/lib/documents";
 import { formatPrice } from "@/lib/product-helpers";
 import { downloadPdf } from "@/lib/pdf-download";
@@ -190,6 +191,11 @@ export default function CotizadorForm({
                   <span className="flex-1 truncate text-sm text-gray-800">
                     {item.description.trim() || <span className="text-gray-400">Item {i + 1} — sin descripción</span>}
                   </span>
+                  {item.provider && (
+                    <span className="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-500">
+                      {PROVIDER_LABELS[item.provider]}
+                    </span>
+                  )}
                   <span className="shrink-0 text-sm font-bold text-gray-800">
                     {formatPrice(item.unitPrice)}
                     {item.quantity !== 1 && (
@@ -283,7 +289,7 @@ export default function CotizadorForm({
                   </label>
                 </div>
 
-                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-4">
                   <label className="text-xs text-gray-500 md:col-span-2">
                     Descripción
                     <input
@@ -304,6 +310,21 @@ export default function CotizadorForm({
                       {serviceTypes.map((t) => (
                         <option key={t.value} value={t.value}>
                           {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs text-gray-500">
+                    Proveedor
+                    <select
+                      className={`mt-1 ${inputClass}`}
+                      value={item.provider ?? ""}
+                      onChange={(e) => updateItem(i, "provider", isProvider(e.target.value) ? e.target.value : null)}
+                    >
+                      <option value="">Sin especificar</option>
+                      {PROVIDER_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
                         </option>
                       ))}
                     </select>
